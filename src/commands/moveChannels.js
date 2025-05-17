@@ -1,7 +1,7 @@
 module.exports = {
   name: 'moveChannels',
   async execute(message, args) {
-    console.log('Comando move_channels acionado');
+    console.log('Comando moveChannels acionado');
 
     if (!message.guild) return message.reply('Este comando só pode ser usado em servidores.');
 
@@ -9,11 +9,15 @@ module.exports = {
       return message.reply('❌ O bot não tem permissão para mover canais.');
     }
 
-    if (args.length < 2) {
-      return message.reply('Uso correto: `!move_channels <categoria> <canal1> <canal2> ...`');
+    const content = message.content;
+    const match = content.match(/^!moveChannels\s+<([^>]+)>\s+(.*)$/);
+
+    if (!match) {
+      return message.reply('Uso correto: `!moveChannels <nome da categoria> <canal1> <canal2> ...`');
     }
 
-    const [categoryName, ...channelNames] = args;
+    const categoryName = match[1].trim();
+    const channelNames = match[2].trim().split(/\s+/);
 
     const category = message.guild.channels.cache.find(
       (c) => c.type === 4 && c.name.toLowerCase() === categoryName.toLowerCase()

@@ -1,6 +1,6 @@
 module.exports = {
   name: 'organizeChannels',
-  async execute(message, args) {
+  async execute(message, _) {
     console.log('Comando organizeChannels foi acionado');
 
     if (!message.guild) return message.reply('Este comando só pode ser usado em servidores.');
@@ -10,10 +10,13 @@ module.exports = {
       return message.reply('O bot não tem permissão para organizar canais.');
     }
 
-    const categoryName = args.join(' ');
-    if (!categoryName) {
-      return message.reply('Você precisa fornecer o nome de uma categoria.');
+    // Extrai categoria entre < >
+    const match = message.content.match(/^!organizeChannels\s+<([^>]+)>$/);
+    if (!match) {
+      return message.reply('Uso correto: `!organizeChannels <nome da categoria>`');
     }
+
+    const categoryName = match[1].trim();
 
     const category = message.guild.channels.cache.find(
       (channel) => channel.type === 4 && channel.name.toLowerCase() === categoryName.toLowerCase()
