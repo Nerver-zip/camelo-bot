@@ -81,7 +81,7 @@ module.exports = {
             title: `🐫 Skill: ${name}`,
             description: `${description}\n\n**Obtenção:** ${obtain}`,
             color: 0xFFD700,
-            image: image ? { url: image } : undefined,
+            thumbnail: image ? { url: image } : undefined,
             url: bestMatchUrl,
           }]
         });

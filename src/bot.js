@@ -12,8 +12,9 @@ const client = new Client({
 const commands = [
   require('./commands/cameloHelp'),
   require('./commands/createChannels'),
-  require('./commands/organizeChannels'),
+  require('./commands/getTierList'),
   require('./commands/moveChannels'),
+  require('./commands/organizeChannels'),
   require('./commands/skill'),
 ];
 

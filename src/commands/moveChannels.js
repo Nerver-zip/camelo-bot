@@ -30,14 +30,31 @@ module.exports = {
     const moved = [];
     const notFound = [];
 
+    // Verifica quantos canais já estão na categoria
+    const currentChildren = category.children.cache.filter(c => c.type === 0 || c.type === 2 || c.type === 15);
+    const availableSlots = 50 - currentChildren.size;
+
+    if (channelNames.length > availableSlots) {
+      return message.reply(
+        `❌ A categoria "${category.name}" já possui ${currentChildren.size} canais.\n` +
+        `Ela pode conter no máximo 50 canais.\n` +
+        `Você tentou mover ${channelNames.length}, mas só há espaço para ${availableSlots}.`
+      );
+    }
+
     for (const name of channelNames) {
       const channel = message.guild.channels.cache.find(
         (c) => c.type === 0 && c.name.toLowerCase() === name.toLowerCase()
       );
 
       if (channel) {
-        await channel.setParent(category.id);
-        moved.push(channel.name);
+        try {
+          await channel.setParent(category.id);
+          moved.push(channel.name);
+        } catch (error) {
+          console.error(`Erro ao mover canal ${channel.name}:`, error);
+          notFound.push(`${name} (erro ao mover)`);
+        }
       } else {
         notFound.push(name);
       }
@@ -45,7 +62,7 @@ module.exports = {
 
     let reply = `✅ Canais movidos para **${category.name}**: ${moved.join(', ') || 'nenhum'}`;
     if (notFound.length > 0) {
-      reply += `\n⚠️ Canais não encontrados: ${notFound.join(', ')}`;
+      reply += `\n⚠️ Canais não encontrados ou com erro: ${notFound.join(', ')}`;
     }
 
     return message.reply(reply);
