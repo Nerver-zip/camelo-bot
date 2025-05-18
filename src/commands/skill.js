@@ -59,14 +59,18 @@ module.exports = {
           if (image && image.startsWith('/')) {
             image = `https://www.duellinksmeta.com${image}`;
           }
-
-        // Coletar todas as formas de obtenção únicas
-        const obtainElements = $('.obtain-wrapper a');
+          
         const obtainSet = new Set();
-
-        obtainElements.each((_, el) => {
+        $('.obtain-wrapper a').each((_, el) => {
           const text = $(el).text().trim();
           if (text) obtainSet.add(text);
+        });
+
+        $('.obtain-container').each((_, el) => {
+          $(el).find('span').each((_, spanEl) => {
+            const text = $(spanEl).text().trim();
+            if (text) obtainSet.add(text);
+          });
         });
 
         // Converter Set em array e limitar a 5

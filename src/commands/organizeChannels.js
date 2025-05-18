@@ -5,12 +5,14 @@ module.exports = {
 
     if (!message.guild) return message.reply('Este comando só pode ser usado em servidores.');
 
-    // Verifica permissão
+    if (!message.member.permissions.has('ManageChannels')) {
+      return message.reply('❌ Você precisa ser moderador ou maior para usar este comando.');
+    }
+    
     if (!message.guild.members.me.permissions.has('ManageChannels')) {
       return message.reply('O bot não tem permissão para organizar canais.');
     }
 
-    // Extrai categoria entre < >
     const match = message.content.match(/^!organizeChannels\s+<([^>]+)>$/);
     if (!match) {
       return message.reply('Uso correto: `!organizeChannels <nome da categoria>`');

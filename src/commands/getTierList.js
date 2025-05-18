@@ -7,6 +7,10 @@ module.exports = {
       return message.reply('Este comando só pode ser usado em servidores.');
     }
 
+    if (!message.member.permissions.has('ManageChannels')) {
+      return message.reply('❌ Você precisa ser moderador ou maior para usar este comando.');
+    }
+
     if (!message.guild.members.me.permissions.has('ManageChannels')) {
       return message.reply('O bot não tem permissão para gerenciar canais.');
     }
