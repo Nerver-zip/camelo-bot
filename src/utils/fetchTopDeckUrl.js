@@ -9,7 +9,10 @@ async function fetchTopDeckUrl(name) {
   const url = `${baseUrl}/top-decks#deck=${encodeURIComponent(name)}`;
   const formattedName = formatDeckName(name);
 
-  const browser = await puppeteer.launch({ headless: 'new' });
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
   const page = await browser.newPage();
 
   await page.setViewport({ width: 800, height: 600 });
