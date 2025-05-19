@@ -15,6 +15,7 @@ const commands = [
   require('./commands/getTierList'),
   require('./commands/moveChannels'),
   require('./commands/organizeChannels'),
+  require('./commands/sample'),
   require('./commands/skill'),
 ];
 
