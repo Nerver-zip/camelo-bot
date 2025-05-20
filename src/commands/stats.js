@@ -41,7 +41,7 @@ module.exports = {
           inline: false
         });
       }
-      await message.channel.send({ embeds: [embed] });
+      return await message.channel.send({ embeds: [embed] });
     } catch (error) {
       console.error("Erro ao executar o comando !stats:", error.message);
       await message.reply("❌ Ocorreu um erro ao buscar as informações da carta.");
