@@ -1,13 +1,18 @@
 const puppeteer = require('puppeteer');
+const { getCorrectDeckName } = require("./getCorrectDeckName.js");
 
 function formatDeckName(name) {
   return name.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
 async function fetchTopDeckUrl(name) {
+
+  const correctedName = await getCorrectDeckName(name);
+  if (!correctedName) return null;
+
   const baseUrl = 'https://www.duellinksmeta.com';
-  const url = `${baseUrl}/top-decks#deck=${encodeURIComponent(name)}`;
-  const formattedName = formatDeckName(name);
+  const url = `${baseUrl}/top-decks#deck=${encodeURIComponent(correctedName)}`;
+  const formattedName = formatDeckName(correctedName);
 
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -49,5 +54,10 @@ async function fetchTopDeckUrl(name) {
   await browser.close();
   return deckLink ? baseUrl + deckLink : null;
 }
+
+//(async () => {
+//  const deck = await fetchTopDeckUrl("shadoll");
+//  console.log(deck);
+//})();
 
 module.exports = { fetchTopDeckUrl };

@@ -35,5 +35,4 @@ async function fetchTierList() {
     console.error("Erro ao buscar a Tier List:", error.message);
   }
 }
-
 module.exports = { fetchTierList };
