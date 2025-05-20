@@ -12,12 +12,12 @@ const client = new Client({
 const replyMap = new Map();
 
 const commands = [
+  require('./commands/build'),
   require('./commands/cameloHelp'),
   require('./commands/createChannels'),
   require('./commands/getTierList'),
   require('./commands/moveChannels'),
   require('./commands/organizeChannels'),
-  require('./commands/sample'),
   require('./commands/skill'),
   require('./commands/stats'),
 ];

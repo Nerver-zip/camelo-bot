@@ -1,12 +1,12 @@
 const {fetchTopDeckUrl} = require("../utils/fetchTopDeckUrl.js");
 
 module.exports = {
-  name: 'sample',
+  name: 'build',
   async execute(message, _) {
-    console.log('Comando !sample foi acionado');
-    const match = message.content.match(/^!sample\s+(.+)$/i);
+    console.log('Comando !build foi acionado');
+    const match = message.content.match(/^!build\s+(.+)$/i);
     if (!match) {
-      return message.reply('Uso correto: `!sample Nome do Arquetipo`');
+      return message.reply('Uso correto: `!build Nome do Arquetipo`');
     }
     const archetype = match[1];
     try {
