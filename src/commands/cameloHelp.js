@@ -15,7 +15,7 @@ module.exports = {
     
     reply += `Gerais 🌐\n\n` +
     `!skill nome da skill: pega informações da skill\n` + 
-    `!sample Nome do Arquetipo: pega a última build do deck no DLM\n`; 
+    `!sample nome do arquetipo: pega a última build do deck no DLM\n`; 
     `!stats nome da carta: pega stats da carta (popularidade, deck mais usados, quantidade mais usada)\n`;
     
     return message.reply(reply);
