@@ -51,13 +51,9 @@ module.exports = {
     }
 
     // Pega todos canais de decks em todas as categorias (0,1,2,3,90)
-    const allDeckChannels = [];
-    for (const catKey of [0,1,2,3,90]) {
-      const cat = categories[catKey];
-      cat.children.cache.forEach(ch => {
-        if (ch.type === 0) allDeckChannels.push(ch);
-      });
-    }
+    const allDeckChannels = message.guild.channels.cache.filter(
+      ch => ch.type === 0 && ch.parent && ch.parent.type === 4
+    );
 
     // Monta o mapa deckNameNormalizado -> tierNumber
     const tierMap = {};
