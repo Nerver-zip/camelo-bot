@@ -31,18 +31,30 @@ module.exports = {
       90: "Tier 90 decks"
     };
 
+    const allPossibleCategories = [
+      "Tier 0 decks",
+      "Tier 1 decks",
+      "Tier 2 decks",
+      "Tier 3 decks",
+      "Tier 90 decks",
+      "Novos decks",
+      "Outros decks",
+      "Outros decks 2",
+      "Outros decks 3",
+      "Outros decks 4"
+    ];
+
     const categories = {};
-    for (const key in categoryNames) {
+    for (const name of allPossibleCategories) {
       const cat = message.guild.channels.cache.find(
-        ch => ch.type === 4 && ch.name.toLowerCase() === categoryNames[key].toLowerCase()
+        ch => ch.type === 4 && ch.name.toLowerCase() === name.toLowerCase()
       );
-      if (!cat) {
-        return message.reply(`Categoria "${categoryNames[key]}" não encontrada no servidor.`);
+      if (!cat && Object.values(categoryNames).includes(name)) {
+        return message.reply(`Categoria "${name}" não encontrada no servidor.`);
       }
-      categories[key] = cat;
+      if (cat) categories[name] = cat;
     }
 
-    // Função para normalizar nomes (lowercase, remove s final, espaços e traços)
     function normalizeName(name) {
       return name
         .toLowerCase()
@@ -50,22 +62,35 @@ module.exports = {
         .replace(/[-\s]/g, '');
     }
 
-    // Pega todos canais de decks em todas as categorias (0,1,2,3,90)
-    const allDeckChannels = message.guild.channels.cache.filter(
-      ch => ch.type === 0 && ch.parent && ch.parent.type === 4
-    );
+    const allDeckChannels = [];
+    for (const catName of Object.keys(categories)) {
+      const cat = categories[catName];
+      cat.children.cache.forEach(ch => {
+        if (ch.type === 0) allDeckChannels.push(ch);
+      });
+    }
 
-    // Monta o mapa deckNameNormalizado -> tierNumber
     const tierMap = {};
     for (const tierKey in tierList) {
-      // extrai o número da tier a partir da string 'Tier 1', 'Tier 2', etc
       const tierNumber = parseInt(tierKey.replace(/[^0-9]/g, ''), 10);
       if (isNaN(tierNumber)) continue;
 
-      // Cada deck normalizado recebe o número da tier
       for (const deckName of tierList[tierKey]) {
         tierMap[normalizeName(deckName)] = tierNumber;
       }
+    }
+
+    const prevTierDecks = {};
+    for (const tier of [0,1,2,3]) {
+      const catName = categoryNames[tier];
+      const cat = categories[catName];
+      if (!cat) continue;
+
+      cat.children.cache.forEach(ch => {
+        if (ch.type === 0) {
+          prevTierDecks[normalizeName(ch.name)] = tier;
+        }
+      });
     }
 
     const movedChannels = [];
@@ -73,24 +98,40 @@ module.exports = {
     for (const ch of allDeckChannels) {
       const chNorm = normalizeName(ch.name);
 
-      let foundTier = null;
-
       if (tierMap.hasOwnProperty(chNorm)) {
-        foundTier = tierMap[chNorm];
-      } else {
-        foundTier = 90; // Se não está na tier list, vai pra Tier 90
+        const targetTier = tierMap[chNorm];
+        const targetCategory = categories[categoryNames[targetTier]];
+
+        if (!targetCategory) continue;
+
+        if (ch.parentId !== targetCategory.id) {
+          try {
+            await ch.setParent(targetCategory.id);
+            movedChannels.push(`📁 ${ch.name} movido para ${categoryNames[targetTier]}`);
+          } catch (error) {
+            console.error(`Erro ao mover canal ${ch.name}:`, error);
+            movedChannels.push(`⚠️ Erro ao mover canal ${ch.name}`);
+          }
+        }
+        continue;
       }
 
-      // Se já está na categoria correta, pula
-      if (ch.parentId === categories[foundTier].id) continue;
+      if (prevTierDecks.hasOwnProperty(chNorm)) {
+        const tier90Cat = categories[categoryNames[90]];
+        if (!tier90Cat) continue;
 
-      try {
-        await ch.setParent(categories[foundTier].id);
-        movedChannels.push(`📁 ${ch.name} movido para ${categoryNames[foundTier]}`);
-      } catch (error) {
-        console.error(`Erro ao mover canal ${ch.name}:`, error);
-        movedChannels.push(`⚠️ Erro ao mover canal ${ch.name}`);
+        if (ch.parentId !== tier90Cat.id) {
+          try {
+            await ch.setParent(tier90Cat.id);
+            movedChannels.push(`📁 ${ch.name} movido para ${categoryNames[90]} (despromovido)`);
+          } catch (error) {
+            console.error(`Erro ao mover canal ${ch.name}:`, error);
+            movedChannels.push(`⚠️ Erro ao mover canal ${ch.name}`);
+          }
+        }
+        continue;
       }
+      // Não toca em decks que não estavam antes e não estão agora na tier list
     }
 
     if (movedChannels.length === 0) {
