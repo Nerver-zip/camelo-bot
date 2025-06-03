@@ -1,5 +1,8 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+const { fetchMetaStats } = require('./utils/fetchMetaStats');
+const { generateChart } = require('./utils/generateChart');
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -16,6 +19,7 @@ const commands = [
   require('./commands/cameloHelp'),
   require('./commands/createChannels'),
   require('./commands/getTierList'),
+  require('./commands/meta'),
   require('./commands/moveChannels'),
   require('./commands/organizeChannels'),
   require('./commands/skill'),
@@ -71,4 +75,28 @@ client.on('messageDelete', async (deletedMessage) => {
 });
 
 client.login(process.env.TOKEN);
+
+fetchMetaStats()
+  .then((decks) => {
+    console.log('📈 fetchMetaStats executado na inicialização.');
+    return generateChart(decks);
+  })
+  .then(() => {
+    console.log('📊 Gráfico gerado na inicialização.');
+  })
+  .catch(console.error);
+
+// A cada 24 horas atualiza a base de decks e gera o gráfico
+const oneDay = 24 * 60 * 60 * 1000;
+setInterval(() => {
+  fetchMetaStats()
+    .then((decks) => {
+      console.log('📈 fetchMetaStats executado automaticamente.');
+      return generateChart(decks);
+    })
+    .then(() => {
+      console.log('📊 Gráfico gerado automaticamente.');
+    })
+    .catch(console.error);
+}, oneDay);
 
