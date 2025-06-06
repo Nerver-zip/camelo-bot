@@ -73,9 +73,9 @@ async function fetchMetaStats() {
   const enriched = [];
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await new Promise(res => setTimeout(res, 2000));
-    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 20000 });
+    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 60000 });
 
     const results = await page.evaluate(() => {
       const deckContainers = document.querySelectorAll('.deck-button-container .deck-type-container');
@@ -136,11 +136,9 @@ async function fetchMetaStats() {
   }
 }
 
-if (require.main === module) {
-  (async () => {
-    const decks = await fetchMetaStats();
-    console.dir(decks, { depth: null });
-  })();
-}
+(async () => {
+  const decks = await fetchMetaStats();
+  console.dir(decks, { depth: null });
+})();
 
 module.exports = { fetchMetaStats };
