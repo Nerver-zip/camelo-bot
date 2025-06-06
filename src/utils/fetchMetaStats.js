@@ -54,7 +54,8 @@ async function fetchMetaStats() {
   const url = 'https://www.duellinksmeta.com/top-decks#tournamentsOnly';
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    protocolTimeout: 120000
   });
   const page = await browser.newPage();
 
@@ -73,9 +74,9 @@ async function fetchMetaStats() {
   const enriched = [];
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await new Promise(res => setTimeout(res, 2000));
-    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 60000 });
+    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 120000 });
 
     const results = await page.evaluate(() => {
       const deckContainers = document.querySelectorAll('.deck-button-container .deck-type-container');
