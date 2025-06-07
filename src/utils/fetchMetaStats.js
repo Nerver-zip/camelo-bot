@@ -43,7 +43,7 @@ async function downloadImage(url, filename) {
       });
 
       writer.on('error', (err) => {
-        writer.destroy(); // Libera recurso mesmo com erro
+        writer.destroy();
         console.error(`❌ Erro ao salvar ${filename}:`, err.message);
         reject(err);
       });
@@ -60,7 +60,6 @@ async function fetchMetaStats() {
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    // 'protocolTimeout' não é um parâmetro oficial do launch, melhor controlar no goto/waitForSelector
   });
 
   const page = await browser.newPage();
@@ -70,7 +69,6 @@ async function fetchMetaStats() {
 
   page.on('request', (req) => {
     const resourceType = req.resourceType();
-    // bloquear só o que realmente não quer
     if (resourceType === 'stylesheet' || resourceType === 'font') {
       req.abort();
     } else {
@@ -82,11 +80,14 @@ async function fetchMetaStats() {
 
   try {
     console.log('⏳ Carregando página:', url);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await new Promise(res => setTimeout(res, 4000));
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000});
+
+    // Scroll para ajudar no carregamento de conteúdo dinâmico / lazy load
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    await page.waitForTimeout(2000);
 
     console.log('⏳ Esperando seletor .deck-button-container .deck-type-container');
-    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 120000 });
+    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 30000});
 
     console.log('✅ Seletor encontrado! Extraindo dados...');
     const results = await page.evaluate(() => {
@@ -147,7 +148,6 @@ async function fetchMetaStats() {
     console.log('🧹 Browser fechado.');
   }
 }
-
 
 //(async () => {
 //  const decks = await fetchMetaStats();
