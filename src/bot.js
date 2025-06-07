@@ -101,7 +101,11 @@ app.get('/', (_, res) => {
   res.send('✅ Bot está vivo!');
 });
 
-app.get('/update-meta', async (_, res) => {
+app.get('/update-meta', async (req, res) => {
+  if (req.query.key !== process.env.KEY) {
+    return res.status(403).send('❌ Acesso negado.');
+  }
+
   try {
     const decks = await fetchMetaStats();
 
