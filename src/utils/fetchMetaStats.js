@@ -52,19 +52,23 @@ async function downloadImage(url, filename) {
 
 async function fetchMetaStats() {
   const url = 'https://www.duellinksmeta.com/top-decks#tournamentsOnly';
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    protocolTimeout: 120000
-  });
-  const page = await browser.newPage();
 
+  console.log('🚀 Iniciando Puppeteer...');
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    // 'protocolTimeout' não é um parâmetro oficial do launch, melhor controlar no goto/waitForSelector
+  });
+
+  const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
+
   await page.setRequestInterception(true);
 
   page.on('request', (req) => {
-    const block = ['stylesheet', 'font', 'image'];
-    if (block.includes(req.resourceType())) {
+    const resourceType = req.resourceType();
+    // bloquear só o que realmente não quer
+    if (resourceType === 'stylesheet' || resourceType === 'font') {
       req.abort();
     } else {
       req.continue();
@@ -74,10 +78,14 @@ async function fetchMetaStats() {
   const enriched = [];
 
   try {
+    console.log('⏳ Carregando página:', url);
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await new Promise(res => setTimeout(res, 2000));
+    await new Promise(res => setTimeout(res, 4000));
+
+    console.log('⏳ Esperando seletor .deck-button-container .deck-type-container');
     await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 120000 });
 
+    console.log('✅ Seletor encontrado! Extraindo dados...');
     const results = await page.evaluate(() => {
       const deckContainers = document.querySelectorAll('.deck-button-container .deck-type-container');
       const decks = [];
@@ -95,9 +103,7 @@ async function fetchMetaStats() {
       return decks;
     });
 
-    // Pega só os 10 primeiros decks para baixar imagem
     const maxWithImages = 10;
-
     for (let i = 0; i < results.length; i++) {
       const deck = results[i];
       let imagePath = null;
@@ -124,18 +130,21 @@ async function fetchMetaStats() {
 
       enriched.push({
         ...deck,
-        image: imagePath // null para decks > 10
+        image: imagePath,
       });
     }
 
+    console.log('✅ Dados enriquecidos finalizados.');
     return enriched;
   } catch (error) {
-    console.error("❌ Erro ao buscar top meta decks:", error.message);
+    console.error('❌ Erro ao buscar top meta decks:', error.message);
     return [];
   } finally {
     await browser.close();
+    console.log('🧹 Browser fechado.');
   }
 }
+
 
 //(async () => {
 //  const decks = await fetchMetaStats();
