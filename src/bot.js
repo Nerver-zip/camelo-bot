@@ -1,4 +1,5 @@
 require('dotenv').config();
+const express = require('express');
 const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const { fetchMetaStats } = require('./utils/fetchMetaStats');
 const { generateChart } = require('./utils/generateChart');
@@ -6,7 +7,7 @@ const { generateChart } = require('./utils/generateChart');
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,  
+    GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
   ],
@@ -26,17 +27,30 @@ const commands = [
   require('./commands/stats'),
 ];
 
+// ========== Discord Bot Events ==========
+
 client.on('ready', () => {
   console.log(`Bot online como ${client.user.tag}`);
   client.user.setPresence({
-  status: 'online',
-  activities: [
-    {
-      name: '🐪 Comandos na bio 🐫',
-      type: ActivityType.Playing
-    }
-  ],
+    status: 'online',
+    activities: [
+      {
+        name: '🐪 Comandos na bio 🐫',
+        type: ActivityType.Playing
+      }
+    ],
   });
+
+  // Execução única ao iniciar
+  fetchMetaStats()
+    .then((decks) => {
+      console.log('📈 fetchMetaStats executado na inicialização.');
+      return generateChart(decks);
+    })
+    .then(() => {
+      console.log('📊 Gráfico gerado na inicialização.');
+    })
+    .catch(console.error);
 });
 
 client.on('messageCreate', async (message) => {
@@ -44,7 +58,7 @@ client.on('messageCreate', async (message) => {
 
   const args = message.content.trim().split(/\s+/);
   const commandName = args.shift().toLowerCase();
-  
+
   const command = commands.find(cmd => `!${cmd.name.toLowerCase()}` === commandName.toLowerCase());
   if (command) {
     try {
@@ -76,27 +90,26 @@ client.on('messageDelete', async (deletedMessage) => {
 
 client.login(process.env.TOKEN);
 
-fetchMetaStats()
-  .then((decks) => {
-    console.log('📈 fetchMetaStats executado na inicialização.');
-    return generateChart(decks);
-  })
-  .then(() => {
-    console.log('📊 Gráfico gerado na inicialização.');
-  })
-  .catch(console.error);
+// ========== Express Server para manter vivo e ativar update ==========
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// A cada 24 horas atualiza a base de decks e gera o gráfico
-const oneDay = 24 * 60 * 60 * 1000;
-setInterval(() => {
-  fetchMetaStats()
-    .then((decks) => {
-      console.log('📈 fetchMetaStats executado automaticamente.');
-      return generateChart(decks);
-    })
-    .then(() => {
-      console.log('📊 Gráfico gerado automaticamente.');
-    })
-    .catch(console.error);
-}, oneDay);
+app.get('/', (_, res) => {
+  res.send('✅ Bot está vivo!');
+});
 
+app.get('/update-meta', async (_, res) => {
+  try {
+    const decks = await fetchMetaStats();
+    await generateChart(decks);
+    console.log('📈 Meta atualizada via /update-meta');
+    res.send('✅ Meta atualizada com sucesso!');
+  } catch (err) {
+    console.error('❌ Erro ao atualizar meta via /update-meta:', err.message);
+    res.status(500).send('❌ Erro ao atualizar meta.');
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor HTTP iniciado na porta ${PORT}`);
+});
