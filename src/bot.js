@@ -41,16 +41,19 @@ client.on('ready', () => {
     ],
   });
 
-  // Execução única ao iniciar
   fetchMetaStats()
-    .then((decks) => {
+    .then(async (decks) => {
+      if (!decks || decks.length === 0) {
+        console.warn('⚠️ Erro! Nenhum deck retornado na inicialização.');
+        return;
+      }
       console.log('📈 fetchMetaStats executado na inicialização.');
-      return generateChart(decks);
-    })
-    .then(() => {
+      await generateChart(decks);
       console.log('📊 Gráfico gerado na inicialização.');
     })
-    .catch(console.error);
+    .catch((err) => {
+      console.error('❌ Erro ao buscar decks na inicialização:', err.message);
+    });
 });
 
 client.on('messageCreate', async (message) => {
@@ -92,7 +95,7 @@ client.login(process.env.TOKEN);
 
 // ========== Express Server para manter vivo e ativar update ==========
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 app.get('/', (_, res) => {
   res.send('✅ Bot está vivo!');
@@ -101,6 +104,12 @@ app.get('/', (_, res) => {
 app.get('/update-meta', async (_, res) => {
   try {
     const decks = await fetchMetaStats();
+
+    if (!decks || decks.length === 0) {
+      console.warn('⚠️ Nenhum deck retornado. Abortando geração de gráfico.');
+      return res.status(204).send('⚠️ Nenhum deck encontrado. Gráfico não gerado.');
+    }
+
     await generateChart(decks);
     console.log('📈 Meta atualizada via /update-meta');
     res.send('✅ Meta atualizada com sucesso!');
