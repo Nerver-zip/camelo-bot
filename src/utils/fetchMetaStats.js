@@ -34,14 +34,12 @@ async function downloadImage(url, filename) {
 
     return new Promise((resolve, reject) => {
       response.data.pipe(writer);
-
       writer.on('finish', () => {
         writer.close(() => {
           console.log(`✅ Imagem salva: ${filename}`);
           resolve(filePath);
         });
       });
-
       writer.on('error', (err) => {
         writer.destroy();
         console.error(`❌ Erro ao salvar ${filename}:`, err.message);
@@ -59,14 +57,24 @@ async function fetchMetaStats() {
   console.log('🚀 Iniciando Puppeteer...');
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-zygote',
+      '--single-process',
+      '--disable-accelerated-2d-canvas',
+      '--disable-dev-tools',
+      '--disable-infobars',
+      '--disable-extensions'
+    ],
   });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
 
   await page.setRequestInterception(true);
-
   page.on('request', (req) => {
     const resourceType = req.resourceType();
     if (resourceType === 'stylesheet' || resourceType === 'font') {
@@ -80,14 +88,16 @@ async function fetchMetaStats() {
 
   try {
     console.log('⏳ Carregando página:', url);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000});
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Scroll para ajudar no carregamento de conteúdo dinâmico / lazy load
-    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    // Scroll para ajudar no carregamento de conteúdo dinâmico
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight / 2);
+    });
     await page.waitForTimeout(2000);
 
     console.log('⏳ Esperando seletor .deck-button-container .deck-type-container');
-    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 30000});
+    await page.waitForSelector('.deck-button-container .deck-type-container', { timeout: 30000 });
 
     console.log('✅ Seletor encontrado! Extraindo dados...');
     const results = await page.evaluate(() => {
@@ -148,10 +158,5 @@ async function fetchMetaStats() {
     console.log('🧹 Browser fechado.');
   }
 }
-
-//(async () => {
-//  const decks = await fetchMetaStats();
-//  console.dir(decks, { depth: null });
-//})();
 
 module.exports = { fetchMetaStats };
