@@ -242,31 +242,28 @@ async function generateChart(deckData) {
           ctx.clip();
           ctx.drawImage(img, centerSliceX - imgDiameter / 2, centerSliceY - imgDiameter / 2, imgDiameter, imgDiameter);
           ctx.restore();
-        } else {
-          // Desenha o nome no centro da fatia para decks sem imagem (incluindo 'Outros')
-          ctx.save();
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 12px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 1;
+        } else if (percent >= 0.05) {
+        // Só desenha o nome se a fatia tiver pelo menos 5%
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
 
-          // Ajuste para quebrar o texto se ficar muito longo (exemplo simples)
-          const maxWidth = radius * 0.6;
-          const lines = splitTextIntoLines(deckName, ctx, maxWidth);
+        const maxWidth = radius * 0.6;
+        const lines = splitTextIntoLines(deckName, ctx, maxWidth);
 
-          // Desenha múltiplas linhas, centralizadas verticalmente
-          const lineHeight = 14;
-          const textHeight = lines.length * lineHeight;
-          lines.forEach((line, i) => {
-            ctx.fillText(line, centerSliceX, centerSliceY - textHeight / 2 + i * lineHeight + lineHeight / 2);
-          });
-
-          ctx.restore();
-        }
+        const lineHeight = 14;
+        const textHeight = lines.length * lineHeight;
+        lines.forEach((line, i) => {
+          ctx.fillText(line, centerSliceX, centerSliceY - textHeight / 2 + i * lineHeight + lineHeight / 2);
+        });
+        ctx.restore();
+      }
       });
 
       // Função para quebrar texto em linhas, respeitando maxWidth
