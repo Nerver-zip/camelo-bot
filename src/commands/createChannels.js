@@ -1,3 +1,5 @@
+const { ChannelType } = require('discord.js');
+
 module.exports = {
   name: 'createChannels',
   async execute(message, args) {
@@ -15,14 +17,18 @@ module.exports = {
       return message.reply('O bot não tem permissão para criar canais.');
     }
 
-    const [categoryName, ...channelNames] = args;
+    const content = message.content;
+    const match = content.match(/^!createChannels\s+<([^>]+)>\s+(.*)$/);
 
-    if (!categoryName || channelNames.length === 0) {
+    if (!match) {
       return message.reply('Uso: !createChannels <categoria> <canal1> <canal2> ...');
     }
 
+    const categoryName = match[1].trim();
+    const channelNames = match[2].trim().split(/\s+/);
+
     const category = message.guild.channels.cache.find(
-      (ch) => ch.type === 4 && ch.name.toLowerCase() === categoryName.toLowerCase()
+      (ch) => ch.type === ChannelType.GuildCategory && ch.name.toLowerCase() === categoryName.toLowerCase()
     );
 
     if (!category) {
@@ -32,8 +38,8 @@ module.exports = {
     const createdChannels = [];
 
     for (const name of channelNames) {
-      const existing = category.children.cache.find(
-        ch => ch.name.toLowerCase() === name.toLowerCase()
+      const existing = message.guild.channels.cache.find(
+        ch => ch.parentId === category.id && ch.name.toLowerCase() === name.toLowerCase()
       );
 
       if (existing) {
@@ -44,7 +50,7 @@ module.exports = {
       try {
         await message.guild.channels.create({
           name,
-          type: 0,
+          type: ChannelType.GuildText,
           parent: category.id,
         });
         createdChannels.push(`✅ ${name}`);
