@@ -3,7 +3,7 @@ const { fetchTierList } = require("../utils/fetchTierList.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('gettierlist')
+    .setName('get-tier-list')
     .setDescription('Organiza os canais de acordo com a Tier List')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 

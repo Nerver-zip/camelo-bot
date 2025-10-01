@@ -2,7 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = 
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('movechannels')
+    .setName('move-channels')
     .setDescription('Move canais para a categoria especificada.')
     .addChannelOption(option =>
       option.setName('categoria')

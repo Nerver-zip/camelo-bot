@@ -2,7 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = 
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('createchannels')
+    .setName('create-channels')
     .setDescription('Cria canais de texto dentro de uma categoria existente.')
     .addChannelOption(option =>
       option.setName('categoria')

@@ -2,7 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = 
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('organizechannels')
+    .setName('organize-channels')
     .setDescription('Organiza os canais de uma categoria em ordem alfabética.')
     .addChannelOption(option =>
       option.setName('categoria')
