@@ -33,7 +33,7 @@ for (const file of commandFiles) {
 const replyMap = new Map();
 
 // ========== Discord Events ==========
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`Bot online como ${client.user.tag}`);
 
   client.user.setPresence({

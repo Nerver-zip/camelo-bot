@@ -62,9 +62,9 @@ async function fetchMetaStats() {
   }
 }
 
-(async () => {
-  const decks = await fetchMetaStats();
-  console.dir(decks, { depth: null });
-})();
+//(async () => {
+//  const decks = await fetchMetaStats();
+//  console.dir(decks, { depth: null });
+//})();
 
 module.exports = { fetchMetaStats };
