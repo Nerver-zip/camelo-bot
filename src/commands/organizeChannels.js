@@ -1,42 +1,59 @@
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
+
 module.exports = {
-  name: 'organizeChannels',
-  async execute(message, _) {
-    console.log('Comando organizeChannels foi acionado');
+  data: new SlashCommandBuilder()
+    .setName('organizechannels')
+    .setDescription('Organiza os canais de uma categoria em ordem alfabética.')
+    .addChannelOption(option =>
+      option.setName('categoria')
+        .setDescription('Escolha a categoria a ser organizada')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildCategory)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
-    if (!message.guild) return message.reply('Este comando só pode ser usado em servidores.');
+  async execute(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    if (!message.member.permissions.has('ManageChannels')) {
-      return message.reply('❌ Você precisa ser moderador ou maior para usar este comando.');
-    }
-    
-    if (!message.guild.members.me.permissions.has('ManageChannels')) {
-      return message.reply('O bot não tem permissão para organizar canais.');
-    }
-
-    const match = message.content.match(/^!organizeChannels\s+<([^>]+)>$/);
-    if (!match) {
-      return message.reply('Uso correto: `!organizeChannels <nome da categoria>`');
-    }
-
-    const categoryName = match[1].trim();
-
-    const category = message.guild.channels.cache.find(
-      (channel) => channel.type === 4 && channel.name.toLowerCase() === categoryName.toLowerCase()
-    );
-
-    if (!category) {
-      return message.reply(`Categoria "${categoryName}" não encontrada 🐪🐫.`);
+    if (!interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
+      return interaction.editReply({
+        content: '❌ Sai fora zé! Você precisa de permissão de administrador para usar este comando.'
+      });
     }
 
-    const textChannels = category.children.cache
-      .filter(channel => channel.type === 0)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      const category = interaction.options.getChannel('categoria');
+      if (!category || category.type !== ChannelType.GuildCategory) {
+        return interaction.editReply({ content: '❌ Categoria inválida.' });
+      }
 
-    let position = 0;
-    for (const channel of textChannels.values()) {
-      await channel.setPosition(position++);
+      const channels = category.children.cache
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (channels.size === 0) {
+        return interaction.editReply({
+          content: `A categoria **${category.name}** não possui canais para organizar.`
+        });
+      }
+
+      // pega a menor posição atual
+      const basePos = Math.min(...channels.map(ch => ch.position));
+
+      let i = 0;
+      for (const [, channel] of channels) {
+        await channel.setPosition(basePos + i);
+        i++;
+      }
+
+      return interaction.editReply({
+        content: `✅ Canais da categoria **${category.name}** organizados em ordem alfabética!`
+      });
+
+    } catch (error) {
+      console.error(error);
+      return interaction.editReply({
+        content: '❌ Ocorreu um erro ao organizar os canais.'
+      });
     }
-
-    return message.reply(`Canais em "${category.name}" organizados em ordem alfabética! 🐪🐫`);
-  }
+  },
 };

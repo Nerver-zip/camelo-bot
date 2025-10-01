@@ -1,19 +1,26 @@
 const { fetchCardStats } = require("../utils/fetchCardStats.js");
-const { EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 
 module.exports = {
-  name: 'stats',
-  async execute(message, _) {
-    const match = message.content.match(/^!stats\s+(.+)$/i);
-    if (!match) return;
+  data: new SlashCommandBuilder()
+    .setName('stats')
+    .setDescription('Mostra estatísticas de uma carta')
+    .addStringOption(option =>
+      option.setName('carta')
+        .setDescription('Nome da carta')
+        .setRequired(true)
+    ),
 
-    const cardName = match[1].trim();
+  async execute(interaction) {
+    await interaction.deferReply(); 
+
+    const cardName = interaction.options.getString('carta').trim();
 
     try {
       const stats = await fetchCardStats(cardName);
 
       if (!stats) {
-        return message.reply(`❌ Não foi possível encontrar informações para **${cardName}**.`);
+        return interaction.editReply(`❌ Não foi possível encontrar informações para **${cardName}**.`);
       }
 
       const embed = new EmbedBuilder()
@@ -33,7 +40,7 @@ module.exports = {
 
       for (const deck of stats["Used decks"]) {
         const statStrings = Object.entries(deck.stats)
-          .map(([x, perc]) => `${x}: ${perc}`)
+          .map(([key, perc]) => `${key}: ${perc}`)
           .join(" | ");
         embed.addFields({
           name: `• ${deck.deckName}`,
@@ -41,10 +48,12 @@ module.exports = {
           inline: false
         });
       }
-      return await message.channel.send({ embeds: [embed] });
+
+      await interaction.editReply({ embeds: [embed] });
+
     } catch (error) {
-      console.error("Erro ao executar o comando !stats:", error.message);
-      await message.reply("❌ Ocorreu um erro ao buscar as informações da carta.");
+      console.error("Erro ao executar o comando /stats:", error);
+      await interaction.editReply("❌ Ocorreu um erro ao buscar as informações da carta.");
     }
   }
 };

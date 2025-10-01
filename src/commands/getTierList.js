@@ -1,18 +1,28 @@
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const { fetchTierList } = require("../utils/fetchTierList.js");
 
 module.exports = {
-  name: 'getTierList',
-  async execute(message, _) {
-    if (!message.guild) {
-      return message.reply('Este comando só pode ser usado em servidores.');
+  data: new SlashCommandBuilder()
+    .setName('gettierlist')
+    .setDescription('Organiza os canais de acordo com a Tier List')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+
+  async execute(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    // 1️⃣ Só em servidores
+    if (!interaction.guild) {
+      return interaction.editReply({ content: '❌ Este comando só pode ser usado em servidores.' });
     }
 
-    if (!message.member.permissions.has('ManageChannels')) {
-      return message.reply('❌ Você precisa ser moderador ou maior para usar este comando.');
+    // 2️⃣ Permissão do usuário
+    if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.editReply({ content: '❌ Você precisa ser moderador ou maior para usar este comando.' });
     }
 
-    if (!message.guild.members.me.permissions.has('ManageChannels')) {
-      return message.reply('O bot não tem permissão para gerenciar canais.');
+    // 3️⃣ Permissão do bot
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.editReply({ content: '❌ O bot não tem permissão para gerenciar canais.' });
     }
 
     let tierList;
@@ -20,7 +30,7 @@ module.exports = {
       tierList = await fetchTierList();
     } catch (error) {
       console.error("Erro ao buscar tier list:", error);
-      return message.reply("Não foi possível buscar a tier list no momento.");
+      return interaction.editReply({ content: "❌ Não foi possível buscar a tier list no momento." });
     }
 
     const categoryNames = {
@@ -46,11 +56,11 @@ module.exports = {
 
     const categories = {};
     for (const name of allPossibleCategories) {
-      const cat = message.guild.channels.cache.find(
-        ch => ch.type === 4 && ch.name.toLowerCase() === name.toLowerCase()
+      const cat = interaction.guild.channels.cache.find(
+        ch => ch.type === ChannelType.GuildCategory && ch.name.toLowerCase() === name.toLowerCase()
       );
       if (!cat && Object.values(categoryNames).includes(name)) {
-        return message.reply(`Categoria "${name}" não encontrada no servidor.`);
+        return interaction.editReply({ content: `❌ Categoria "${name}" não encontrada no servidor.` });
       }
       if (cat) categories[name] = cat;
     }
@@ -66,7 +76,7 @@ module.exports = {
     for (const catName of Object.keys(categories)) {
       const cat = categories[catName];
       cat.children.cache.forEach(ch => {
-        if (ch.type === 0) allDeckChannels.push(ch);
+        if (ch.type === ChannelType.GuildText) allDeckChannels.push(ch);
       });
     }
 
@@ -87,7 +97,7 @@ module.exports = {
       if (!cat) continue;
 
       cat.children.cache.forEach(ch => {
-        if (ch.type === 0) {
+        if (ch.type === ChannelType.GuildText) {
           prevTierDecks[normalizeName(ch.name)] = tier;
         }
       });
@@ -135,11 +145,11 @@ module.exports = {
     }
 
     if (movedChannels.length === 0) {
-      return message.reply("Todos os canais já estão nas categorias corretas.");
+      return interaction.editReply({ content: "Todos os canais já estão nas categorias corretas." });
     } else {
-      return message.reply(
-        "Resumo da organização da Tier List:\n" + movedChannels.join("\n")
-      );
+      return interaction.editReply({
+        content: "Resumo da organização da Tier List:\n" + movedChannels.join("\n")
+      });
     }
   }
 };

@@ -1,17 +1,24 @@
-const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const path = require('path');
 const fs = require('fs');
 
 module.exports = {
-  name: 'meta',
-  async execute(message, _) {
-    console.log('Comando !meta foi acionado');
+  data: new SlashCommandBuilder()
+    .setName('meta')
+    .setDescription('Mostra o gráfico atualizado do meta'),
+
+  async execute(interaction) {
+    console.log('Comando /meta acionado');
+
+    // Defere a resposta para evitar timeout
+    await interaction.deferReply();
 
     try {
+      // Caminho para o gráfico gerado previamente
       const chartPath = path.resolve(__dirname, '../utils/public/charts/chart.png');
 
       if (!fs.existsSync(chartPath)) {
-        return message.reply('❌ Nenhum gráfico encontrado. Gere o gráfico antes de usar este comando.');
+        return interaction.editReply('❌ Nenhum gráfico encontrado. Gere o gráfico antes de usar este comando.');
       }
 
       const attachment = new AttachmentBuilder(chartPath, { name: 'meta.png' });
@@ -23,11 +30,11 @@ module.exports = {
         .setImage('attachment://meta.png')
         .setTimestamp();
 
-      return message.reply({ embeds: [embed], files: [attachment] });
+      return interaction.editReply({ embeds: [embed], files: [attachment] });
 
     } catch (error) {
       console.error('Erro ao enviar gráfico do meta:', error);
-      return message.reply('❌ Ocorreu um erro ao carregar o gráfico do meta.');
+      return interaction.editReply('❌ Ocorreu um erro ao carregar o gráfico do meta.');
     }
   }
 };

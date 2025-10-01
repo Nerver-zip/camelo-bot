@@ -1,74 +1,220 @@
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
+
 module.exports = {
-  name: 'moveChannels',
-  async execute(message, args) {
-    console.log('Comando moveChannels acionado');
+  data: new SlashCommandBuilder()
+    .setName('movechannels')
+    .setDescription('Move canais para a categoria especificada.')
+    .addChannelOption(option =>
+      option.setName('categoria')
+        .setDescription('Categoria destino')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildCategory)
+    )
+    // Adicionando 10 opções de canais como exemplo (podem ser mais)
+    .addChannelOption(option =>
+      option.setName('canal1')
+        .setDescription('Canal a ser movido')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal2')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal3')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal4')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal5')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal6')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal7')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal8')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal9')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal10')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal11')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal12')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal13')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal14')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal15')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal16')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal17')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal18')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal19')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal20')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal21')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal22')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal23')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .addChannelOption(option =>
+      option.setName('canal24')
+        .setDescription('Canal a ser movido')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 
-    if (!message.guild) return message.reply('Este comando só pode ser usado em servidores.');
+    async execute(interaction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    if (!message.member.permissions.has('ManageChannels')) {
-      return message.reply('❌ Você precisa ser moderador ou maior para usar este comando.');
-    }
-
-    if (!message.guild.members.me.permissions.has('ManageChannels')) {
-      return message.reply('❌ O bot não tem permissão para mover canais.');
-    }
-
-    const content = message.content;
-    const match = content.match(/^!moveChannels\s+<([^>]+)>\s+(.*)$/);
-
-    if (!match) {
-      return message.reply('Uso correto: `!moveChannels <nome da categoria> <canal1> <canal2> ...`');
-    }
-
-    const categoryName = match[1].trim();
-    const channelNames = match[2].trim().split(/\s+/);
-
-    const category = message.guild.channels.cache.find(
-      (c) => c.type === 4 && c.name.toLowerCase() === categoryName.toLowerCase()
-    );
-
-    if (!category) {
-      return message.reply(`❌ Categoria "${categoryName}" não encontrada.`);
-    }
-
-    const moved = [];
-    const notFound = [];
-
-    // Verifica quantos canais já estão na categoria
-    const currentChildren = category.children.cache.filter(c => c.type === 0 || c.type === 2 || c.type === 15);
-    const availableSlots = 50 - currentChildren.size;
-
-    if (channelNames.length > availableSlots) {
-      return message.reply(
-        `❌ A categoria "${category.name}" já possui ${currentChildren.size} canais.\n` +
-        `Ela pode conter no máximo 50 canais.\n` +
-        `Você tentou mover ${channelNames.length}, mas só há espaço para ${availableSlots}.`
-      );
-    }
-
-    for (const name of channelNames) {
-      const channel = message.guild.channels.cache.find(
-        (c) => c.type === 0 && c.name.toLowerCase() === name.toLowerCase()
-      );
-
-      if (channel) {
-        try {
-          await channel.setParent(category.id);
-          moved.push(channel.name);
-        } catch (error) {
-          console.error(`Erro ao mover canal ${channel.name}:`, error);
-          notFound.push(`${name} (erro ao mover)`);
+        if (!interaction.guild) {
+          return interaction.editReply({ content: '❌ Este comando só pode ser usado em servidores.' });
         }
-      } else {
-        notFound.push(name);
-      }
-    }
 
-    let reply = `✅ Canais movidos para **${category.name}**: ${moved.join(', ') || 'nenhum'}`;
-    if (notFound.length > 0) {
-      reply += `\n⚠️ Canais não encontrados ou com erro: ${notFound.join(', ')}`;
-    }
+        if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+          return interaction.editReply({ content: '❌ Você precisa ser moderador ou maior para usar este comando.' });
+        }
 
-    return message.reply(reply);
-  }
+        if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+          return interaction.editReply({ content: '❌ O bot não tem permissão para mover canais.' });
+        }
+
+        const category = interaction.options.getChannel('categoria');
+
+        const channelOptions = [];
+        for (let i = 1; i <= 24; i++) {
+          const ch = interaction.options.getChannel(`canal${i}`);
+          if (ch) channelOptions.push(ch);
+        }
+
+        if (channelOptions.length === 0) {
+          return interaction.editReply({ content: '❌ Nenhum canal selecionado.' });
+        }
+
+        const moved = [];
+        const notMoved = [];
+
+        const currentChildren = category.children.cache.filter(c =>
+          [ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildStageVoice].includes(c.type)
+        );
+        const availableSlots = 50 - currentChildren.size;
+
+        if (channelOptions.length > availableSlots) {
+          return interaction.editReply({
+            content: `❌ A categoria "${category.name}" já possui ${currentChildren.size} canais.\n` +
+                     `Ela pode conter no máximo 50 canais.\n` +
+                     `Você tentou mover ${channelOptions.length}, mas só há espaço para ${availableSlots}.`
+          });
+        }
+
+        for (const channel of channelOptions) {
+          try {
+            await channel.setParent(category.id);
+            moved.push(channel.name);
+          } catch (err) {
+            console.error(`Erro ao mover canal ${channel.name}:`, err);
+            notMoved.push(channel.name);
+          }
+        }
+
+        let reply = `✅ Canais movidos para **${category.name}**: ${moved.join(', ') || 'nenhum'}`;
+        if (notMoved.length > 0) {
+          reply += `\n⚠️ Canais não encontrados ou com erro: ${notMoved.join(', ')}`;
+        }
+
+        return interaction.editReply({ content: reply });
+    },
 };
