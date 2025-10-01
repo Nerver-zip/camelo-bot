@@ -1,5 +1,7 @@
+require('dotenv').config();
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+
 puppeteer.use(StealthPlugin());
 
 async function fetchMetaStats() {
@@ -8,6 +10,7 @@ async function fetchMetaStats() {
   console.log('🚀 Iniciando Puppeteer...');
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: process.env.CHROME_PATH,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
 

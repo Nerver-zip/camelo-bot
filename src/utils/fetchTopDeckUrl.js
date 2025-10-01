@@ -1,5 +1,7 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const { getCorrectDeckName } = require("./getCorrectDeckName.js");
+
+require('dotenv').config();
 
 function formatDeckName(name) {
   return name.trim().toLowerCase().replace(/\s+/g, '-');
@@ -16,6 +18,7 @@ async function fetchTopDeckUrl(name) {
 
   const browser = await puppeteer.launch({
     headless: 'new',
+    executablePath: process.env.CHROME_PATH,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   const page = await browser.newPage();

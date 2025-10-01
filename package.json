@@ -25,7 +25,7 @@
     "discord.js": "^14.21.0",
     "dotenv": "^16.6.1",
     "node-fetch": "^2.7.0",
-    "puppeteer": "^24.12.1",
+    "puppeteer-core": "^24.22.3",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "quickchart-js": "^3.1.3",
