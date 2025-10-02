@@ -10,7 +10,6 @@ module.exports = {
         .setRequired(true)
         .addChannelTypes(ChannelType.GuildCategory)
     )
-    // Adicionando 10 opções de canais como exemplo (podem ser mais)
     .addChannelOption(option =>
       option.setName('canal1')
         .setDescription('Canal a ser movido')

@@ -1,5 +1,7 @@
 const { fetchCardStats } = require("../utils/fetchCardStats.js");
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
+const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -10,6 +12,29 @@ module.exports = {
         .setDescription('Nome da carta')
         .setRequired(true)
     ),
+  
+  async autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    if (!focusedValue) 
+        return await interaction.respond([]);
+
+    try {
+        const [cardServer, _] = await initServers();
+        const cardSuggestions = await queryTrie(cardServer, focusedValue);
+        if (!cardSuggestions) 
+            return await interaction.respond([]);
+
+        const choices = cardSuggestions.slice(0, 25).map(card => ({
+            name: card,
+            value: card
+        }));
+
+        await interaction.respond(choices);
+    } catch (error) {
+        console.error('Autocomplete error:', error);
+        await interaction.respond([]);
+    }  
+  },
 
   async execute(interaction) {
     await interaction.deferReply(); 

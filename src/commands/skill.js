@@ -2,6 +2,8 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const stringSimilarity = require('string-similarity');
 const { SlashCommandBuilder } = require('discord.js');
+const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
+const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -13,8 +15,31 @@ module.exports = {
         .setRequired(true)
     ),
 
+  async autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    if (!focusedValue) 
+        return await interaction.respond([]);
+
+    try {
+        const [_, skillServer] = await initServers();
+        const skillSuggestions = await queryTrie(skillServer, focusedValue);
+        if (!skillSuggestions) 
+            return await interaction.respond([]);
+
+        const choices = skillSuggestions.slice(0, 25).map(skill => ({
+            name: skill,
+            value: skill
+        }));
+
+        await interaction.respond(choices);
+    } catch (error) {
+        console.error('Autocomplete error:', error);
+        await interaction.respond([]);
+    }  
+  },
+  
   async execute(interaction) {
-    await interaction.deferReply(); // visível para todos
+    await interaction.deferReply(); 
 
     const inputSkillName = interaction.options.getString('nome').toLowerCase();
 
@@ -86,7 +111,7 @@ module.exports = {
       // 8) Enviar embed
       await interaction.editReply({
         embeds: [{
-          title: `🐫 Skill: ${name}`,
+          title: `Skill: ${name}`,
           description: `${description}\n\n**Obtenção:** ${obtain}`,
           color: 0xFFD700,
           thumbnail: image ? { url: image } : undefined,
