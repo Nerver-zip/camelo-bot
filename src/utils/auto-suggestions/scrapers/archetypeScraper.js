@@ -3,12 +3,12 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-async function coletarSkills() {
+async function coletarArquetypes() {
   try {
-    console.log("Iniciando coleta de skills...");
+    console.log("Iniciando coleta de arquétipos...");
 
     // 1) Buscar sitemap XML
-    const sitemapUrl = 'https://www.duellinksmeta.com/sitemap-skills.xml';
+    const sitemapUrl = 'https://www.duellinksmeta.com/sitemap-deck-types.xml';
     const { data: xml } = await axios.get(sitemapUrl);
 
     // 2) Carregar XML com cheerio
@@ -21,7 +21,7 @@ async function coletarSkills() {
     });
 
     if (urls.length === 0) {
-      console.log('❌ Não foi possível carregar a lista de skills.');
+      console.log('❌ Não foi possível carregar a lista de arquétipos.');
       return;
     }
 
@@ -31,14 +31,16 @@ async function coletarSkills() {
       return lastPart.replace(/-/g, ' '); // mantêm maiúsculas e minúsculas originais
     });
 
-    // 5) Salvar em skills.txt, uma por linha
-    const outputPath = path.join(__dirname, '../dump', 'skills.txt');
+    // 5) Salvar em archetypes.txt, uma por linha
+    const outputPath = path.join(__dirname, '../dump', 'archetypes.txt');
     
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, skillNames.join('\n'), 'utf8');
 
-    console.log(`✅ ${skillNames.length} skills salvas em dump/skills.txt`);
+    console.log(`✅ ${skillNames.length} arquétipos salvos em dump/archetypes.txt`);
   } catch (err) {
     console.error('❌ Erro ao coletar skills:', err.message);
   }
 }
+
+module.exports = { coletarArquetypes };

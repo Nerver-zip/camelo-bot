@@ -1,9 +1,9 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const stringSimilarity = require('string-similarity');
 const { SlashCommandBuilder } = require('discord.js');
 const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
 const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
+const { Matcher } = require("../utils/fuzzyfind/Matcher.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -28,7 +28,7 @@ module.exports = {
 
         const choices = skillSuggestions.slice(0, 25).map(skill => ({
             name: skill,
-            value: skill
+            value: `suggested|${skill}`
         }));
 
         await interaction.respond(choices);
@@ -41,45 +41,22 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply(); 
 
-    const inputSkillName = interaction.options.getString('nome').toLowerCase();
+    const input = interaction.options.getString('nome').toLowerCase();
+    
+    const [flag, skillName] = input.split('|');
+    const fromSuggestion = flag === 'suggested';
+
+    const bestMatchSkill = fromSuggestion ? skillName : Matcher.skill(skillName);
 
     try {
-      // 1) Buscar sitemap XML
-      const sitemapUrl = 'https://www.duellinksmeta.com/sitemap-skills.xml';
-      const { data: xml } = await axios.get(sitemapUrl);
-      const $xml = cheerio.load(xml, { xmlMode: true });
+      bestMatchUrl = `https://www.duellinksmeta.com/skills/${encodeURIComponent(bestMatchSkill)}`;
 
-      // 2) Coletar URLs
-      const urls = [];
-      $xml('url > loc').each((_, el) => {
-        urls.push($xml(el).text());
-      });
-
-      if (urls.length === 0) {
-        return interaction.editReply('❌ Não foi possível carregar a lista de skills.');
-      }
-
-      // 3) Extrair nomes das skills das URLs
-      const skillNamesFromUrls = urls.map(u => {
-        const lastPart = decodeURIComponent(u.split('/').filter(Boolean).pop() || '');
-        return lastPart.replace(/-/g, ' ').toLowerCase();
-      });
-
-      // 4) Fuzzy match
-      const { bestMatch } = stringSimilarity.findBestMatch(inputSkillName, skillNamesFromUrls);
-      if (bestMatch.rating < 0.4) {
-        return interaction.editReply(`❌ Skill "${inputSkillName}" não encontrada.`);
-      }
-
-      // 5) URL da skill correspondente
-      const bestMatchUrl = urls[skillNamesFromUrls.indexOf(bestMatch.target)];
-
-      // 6) Buscar HTML da skill
+      // Buscar HTML da skill
       const { data: skillHtml } = await axios.get(bestMatchUrl);
       const $ = cheerio.load(skillHtml);
 
-      // 7) Extrair dados da skill
-      const name = $('h1.h1').first().text().trim() || bestMatch.target;
+      // Extrair dados da skill
+      const name = $('h1.h1').first().text().trim() || bestMatchSkill;
 
       const description = $('.skill-description').first().text().trim() ||
                           $('.skill-desc').first().text().trim() ||
@@ -108,7 +85,7 @@ module.exports = {
         ? obtainList.join(', ')
         : 'Forma de obtenção não encontrada.';
 
-      // 8) Enviar embed
+      // Enviar embed
       await interaction.editReply({
         embeds: [{
           title: `Skill: ${name}`,

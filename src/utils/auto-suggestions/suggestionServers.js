@@ -1,6 +1,6 @@
 const path = require("path");
 const { spawn } = require('child_process');
-const { queryTrie } = require("./queryTrie.js");
+//const { queryTrie } = require("./queryTrie.js");
 
 const cardServerPath = path.join(__dirname, "bin/cards-autosugg-server");
 const skillServerPath = path.join(__dirname, "bin/skills-autosugg-server");

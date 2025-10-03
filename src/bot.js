@@ -3,6 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits, ActivityType } = require('discord.js');
 const { scheduleChartUpdate } = require('./utils/scheduleChartUpdate');
+const { initServers } = require('./utils/auto-suggestions/suggestionServers.js');
+const { Matcher } = require('./utils/fuzzyfind/Matcher.js');
+const { initAutoSuggestionLists } = require('./utils/auto-suggestions/initAutoSuggestionLists.js');
 
 // ========== Discord Client ==========
 const client = new Client({
@@ -14,20 +17,32 @@ const client = new Client({
   ],
 });
 
-// Coleção de comandos
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+// Inicialização de helpers/utils e comandos
+(async () => {
+    console.log("Importando arquivos...");
+    await initAutoSuggestionLists();
+    console.log("Arquivos importados.");
+    
+    Matcher.init();
 
-for (const file of commandFiles) {
-  const command = require(path.join(commandsPath, file));
-  if ('data' in command && 'execute' in command) {
-    client.commands.set(command.data.name, command);
-    console.log(`[INFO] Comando ${command.data.name} carregado.`);
-  } else {
-    console.warn(`[WARNING] Comando ${file} faltando "data" ou "execute".`);
-  }
-}
+    await initServers();
+    console.log("Servers inicializados.");
+
+    // Coleção de comandos
+    client.commands = new Collection();
+    const commandsPath = path.join(__dirname, 'commands');
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+      const command = require(path.join(commandsPath, file));
+      if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+        console.log(`[INFO] Comando ${command.data.name} carregado.`);
+      } else {
+        console.warn(`[WARNING] Comando ${file} faltando "data" ou "execute".`);
+      }
+    }
+})();
 
 // Map para rastrear respostas do bot
 const replyMap = new Map();
