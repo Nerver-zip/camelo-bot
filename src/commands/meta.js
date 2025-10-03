@@ -15,7 +15,7 @@ module.exports = {
 
     try {
       // Caminho para o gráfico gerado previamente
-      const chartPath = path.resolve(__dirname, '../utils/public/charts/chart.png');
+      const chartPath = path.resolve(__dirname, '../utils/local/charts/chart.png');
 
       if (!fs.existsSync(chartPath)) {
         return interaction.editReply('❌ Nenhum gráfico encontrado. Gere o gráfico antes de usar este comando.');

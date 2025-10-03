@@ -17,12 +17,15 @@ const client = new Client({
   ],
 });
 
-// Inicialização de helpers/utils e comandos
 (async () => {
+
+    const art = fs.readFileSync('art.txt', 'utf8');
+    console.log(`${art}\n\n`);
+
     console.log("Importando arquivos...");
     await initAutoSuggestionLists();
     console.log("Arquivos importados.");
-    
+
     Matcher.init();
 
     await initServers();
@@ -42,13 +45,15 @@ const client = new Client({
         console.warn(`[WARNING] Comando ${file} faltando "data" ou "execute".`);
       }
     }
+
+    await client.login(process.env.TOKEN);
 })();
 
 // Map para rastrear respostas do bot
 const replyMap = new Map();
 
 // ========== Discord Events ==========
-client.once('clientReady', async () => {
+client.once('clientReady', async () => { 
   console.log(`Bot online como ${client.user.tag}`);
 
   client.user.setPresence({
@@ -61,21 +66,30 @@ client.once('clientReady', async () => {
   scheduleChartUpdate();
 });
 
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+//---------------Interaction Listener-------------------
 
+client.on('interactionCreate', async interaction => {
   const command = client.commands.get(interaction.commandName);
   if (!command) return;
 
   try {
-    const response = await command.execute(interaction);
-    if (response?.id) replyMap.set(interaction.id, response);
+    if (interaction.isAutocomplete()) {
+      if (command.autocomplete) {
+        await command.autocomplete(interaction);
+      }
+      return;
+    }
+
+    if (interaction.isChatInputCommand()) {
+      const response = await command.execute(interaction);
+      if (response?.id) replyMap.set(interaction.id, response);
+    }
   } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: '❌ Ocorreu um erro.', ephemeral: true });
+      await interaction.followUp({ content: '❌ Ocorreu um erro.', ephemeral : true });
     } else {
-      await interaction.reply({ content: '❌ Ocorreu um erro.', ephemeral: true });
+      await interaction.reply({ content: '❌ Ocorreu um erro.', ephemeral : true });
     }
   }
 });
@@ -91,6 +105,3 @@ client.on('messageDelete', async deletedMessage => {
     }
   }
 });
-
-// ========== Login ==========
-client.login(process.env.TOKEN);

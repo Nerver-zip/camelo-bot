@@ -2,6 +2,12 @@
 CXX := g++
 CXXFLAGS := -std=c++23 -Wall -Wextra -O2 -march=native
 
+# Cores para terminal
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+CYAN := \033[0;36m
+RESET := \033[0m
+
 # Diretórios
 SRC_DIR := src
 UTILS_DIR := $(SRC_DIR)/utils/auto-suggestions
@@ -11,28 +17,37 @@ LIB_SRC := $(SRC_DIR)/lib/Trie.cpp
 CARDS_SRC := $(UTILS_DIR)/cards-autosugg-server.cpp
 SKILLS_SRC := $(UTILS_DIR)/skills-autosugg-server.cpp
 
-# Diretórios de saída
-CARDS_BIN_DIR := $(UTILS_DIR)/bin
-SKILLS_BIN_DIR := $(UTILS_DIR)/bin
+# Diretório de saída
+BIN_DIR := $(UTILS_DIR)/bin
 
 # Binários
-CARDS_BIN := $(CARDS_BIN_DIR)/cards-autosugg-server
-SKILLS_BIN := $(SKILLS_BIN_DIR)/skills-autosugg-server
+CARDS_BIN := $(BIN_DIR)/cards-autosugg-server
+SKILLS_BIN := $(BIN_DIR)/skills-autosugg-server
 
 # Alvo padrão
-all: $(CARDS_BIN) $(SKILLS_BIN)
+all: show_info $(CARDS_BIN) $(SKILLS_BIN)
+	@echo -e "$(GREEN)Compilação concluída com sucesso!$(RESET)"
 
-$(CARDS_BIN): $(CARDS_SRC) $(LIB_SRC) | $(CARDS_BIN_DIR)
+# Mostra compilador e flags
+show_info:
+	@echo -e "$(CYAN)Compilador: $(YELLOW)$(CXX)$(RESET)"
+	@echo -e "$(CYAN)Flags: $(YELLOW)$(CXXFLAGS)$(RESET)"
+	@echo ""
+
+# Compilação dos binários
+$(CARDS_BIN): $(CARDS_SRC) $(LIB_SRC) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-$(SKILLS_BIN): $(SKILLS_SRC) $(LIB_SRC) | $(SKILLS_BIN_DIR)
+$(SKILLS_BIN): $(SKILLS_SRC) $(LIB_SRC) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-$(CARDS_BIN_DIR) $(SKILLS_BIN_DIR):
+# Criação do diretório de binários
+$(BIN_DIR):
 	mkdir -p $@
 
 # Limpeza
 clean:
 	rm -f $(CARDS_BIN) $(SKILLS_BIN)
+	@echo -e "$(GREEN)Binários removidos com sucesso.$(RESET)"
 
-.PHONY: all clean
+.PHONY: all clean show_info

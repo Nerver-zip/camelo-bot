@@ -10,9 +10,8 @@ lerna-debug.log*
 .vscode
 
 # Local files
-public/
+local/
 bin/
-dump/
 TODO.txt
 
 # Diagnostic reports (https://nodejs.org/api/report.html)

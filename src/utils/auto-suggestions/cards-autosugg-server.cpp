@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
 
     // Caminho do dump relativo ao binário
     fs::path exePath = fs::canonical(argv[0]).parent_path();      // diretório do binário
-    fs::path dumpPath = exePath / "../dump/cards.txt";             // ajusta para onde o dump realmente está
-    dumpPath = fs::canonical(dumpPath);                            // transforma em caminho absoluto
+    fs::path dumpPath = exePath / "../../local/dump/cards.txt";   // dump dir
+    dumpPath = fs::canonical(dumpPath);                           // transforma em caminho absoluto
 
     cout << "Abrindo dump de cards em: " << dumpPath << "\n";
 

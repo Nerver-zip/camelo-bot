@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const cardServerPath = path.join(__dirname, "bin/cards-autosugg-server");
 const skillServerPath = path.join(__dirname, "bin/skills-autosugg-server");
 
-async function startServer(cmd) {
+function startServer(cmd) {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, [], {
       cwd: path.dirname(cmd),
@@ -16,11 +16,9 @@ async function startServer(cmd) {
 
     const onData = (data) => {
       const msg = data.toString().trim();
-      if (!serverReady) {
-        console.log(msg); 
-      }
+      console.log(`[${path.basename(cmd)}] ${msg}`);
 
-      if (msg.includes("Server is ready")) { 
+      if (!serverReady && msg.includes("Server is ready")) {
         serverReady = true;
         proc.stdout.off("data", onData);
         resolve(proc);
@@ -28,21 +26,23 @@ async function startServer(cmd) {
     };
 
     proc.stdout.on("data", onData);
+    proc.stderr.on("data", (err) => console.error(`[${path.basename(cmd)} ERROR] ${err}`));
+    proc.on("exit", (code) => console.log(`[${path.basename(cmd)}] exited with code ${code}`));
     proc.on("error", reject);
   });
 }
 
-let cardServer = null;
-let skillServer = null;
+let servers = [];
 
 async function initServers() {
-  if (!cardServer || !skillServer) {
-    [cardServer, skillServer] = await Promise.all([
+  if (servers.length === 0) {
+    servers = await Promise.all([
       startServer(cardServerPath),
       startServer(skillServerPath),
     ]);
+    global.runningServers = servers; // evita GC
   }
-  return { cardServer, skillServer };
+  return servers;
 }
 
 module.exports = { initServers };
@@ -56,5 +56,3 @@ module.exports = { initServers };
   console.log(await queryTrie(cardServer, "Blue-Eyes"));
   console.log(await queryTrie(skillServer, "Draw Sense"));
 })();*/
-
-

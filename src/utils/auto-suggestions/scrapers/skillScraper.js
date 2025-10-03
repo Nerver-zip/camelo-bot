@@ -30,15 +30,18 @@ async function coletarSkills() {
       const lastPart = decodeURIComponent(u.split('/').filter(Boolean).pop() || '');
       return lastPart.replace(/-/g, ' '); // mantêm maiúsculas e minúsculas originais
     });
-
-    // 5) Salvar em skills.txt, uma por linha
-    const outputPath = path.join(__dirname, '../dump', 'skills.txt');
     
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, skillNames.join('\n'), 'utf8');
+    // 5) Salvar em skills.txt, uma por linha
+    const outputDir = path.join(__dirname, '../../local/dump');
+    const outputFile = path.join(outputDir, "skills.txt");
+    
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(outputFile, skillNames.join('\n'), 'utf8');
 
-    console.log(`✅ ${skillNames.length} skills salvas em dump/skills.txt`);
+    console.log(`✅ ${skillNames.length} skills salvas em local/dump/skills.txt`);
   } catch (err) {
     console.error('❌ Erro ao coletar skills:', err.message);
   }
 }
+
+coletarSkills();

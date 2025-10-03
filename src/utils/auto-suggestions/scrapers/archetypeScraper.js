@@ -25,22 +25,23 @@ async function coletarArquetypes() {
       return;
     }
 
-    // 4) Extrair nomes das skills
-    const skillNames = urls.map(u => {
+    // 4) Extrair nomes dos arquétipos
+    const archetypeNames = urls.map(u => {
       const lastPart = decodeURIComponent(u.split('/').filter(Boolean).pop() || '');
       return lastPart.replace(/-/g, ' '); // mantêm maiúsculas e minúsculas originais
     });
 
     // 5) Salvar em archetypes.txt, uma por linha
-    const outputPath = path.join(__dirname, '../dump', 'archetypes.txt');
+    const outputDir = path.join(__dirname, '../../local/dump');
+    const outputFile = path.join(outputDir, "archetypes.txt");
     
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, skillNames.join('\n'), 'utf8');
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(outputFile, archetypeNames.join('\n'), 'utf8');
 
-    console.log(`✅ ${skillNames.length} arquétipos salvos em dump/archetypes.txt`);
+    console.log(`✅ ${archetypeNames.length} archetypes salvas em local/dump/archetypes.txt`);
   } catch (err) {
-    console.error('❌ Erro ao coletar skills:', err.message);
+    console.error('❌ Erro ao coletar archetypes:', err.message);
   }
 }
 
-module.exports = { coletarArquetypes };
+coletarArquetypes();

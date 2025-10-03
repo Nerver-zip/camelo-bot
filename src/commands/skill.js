@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { SlashCommandBuilder } = require('discord.js');
-const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
+const { initServers } = require("../utils/auto-suggestions/suggestionServers.js");
 const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
 const { Matcher } = require("../utils/fuzzyfind/Matcher.js");
 
@@ -13,51 +13,57 @@ module.exports = {
       option.setName('nome')
         .setDescription('Nome da skill')
         .setRequired(true)
+        .setAutocomplete(true)
     ),
 
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused();
-    if (!focusedValue) 
-        return await interaction.respond([]);
+    if (!focusedValue) return await interaction.respond([]);
 
     try {
-        const [_, skillServer] = await initServers();
-        const skillSuggestions = await queryTrie(skillServer, focusedValue);
-        if (!skillSuggestions) 
-            return await interaction.respond([]);
+      const [_, skillServer] = await initServers();
+      const skillSuggestions = await queryTrie(skillServer, String(focusedValue));
+      if (!skillSuggestions) return await interaction.respond([]);
 
-        const choices = skillSuggestions.slice(0, 25).map(skill => ({
-            name: skill,
-            value: `suggested|${skill}`
-        }));
+      const choices = skillSuggestions.slice(0, 25).map(skill => ({
+        name: skill,
+        value: `suggested|${skill}`
+      }));
 
-        await interaction.respond(choices);
+      await interaction.respond(choices);
     } catch (error) {
-        console.error('Autocomplete error:', error);
-        await interaction.respond([]);
-    }  
+      console.error('Autocomplete error:', error.message || error);
+      await interaction.respond([]);
+    }
   },
-  
+
   async execute(interaction) {
     await interaction.deferReply(); 
 
-    const input = interaction.options.getString('nome').toLowerCase();
-    
-    const [flag, skillName] = input.split('|');
+    const input = interaction.options.getString('nome');
+    const [flag, skillNameRaw] = input.split('|');
     const fromSuggestion = flag === 'suggested';
+    const skillName = fromSuggestion ? skillNameRaw : input;
 
-    const bestMatchSkill = fromSuggestion ? skillName : Matcher.skill(skillName);
+    const bestMatchSkill = fromSuggestion
+      ? skillName
+      : Matcher.skill(skillName.toLowerCase());
+
+    if (!bestMatchSkill) {
+      await interaction.deleteReply();
+      return interaction.followUp({
+        content: '❌ Skill não encontrada.',
+        ephemeral: true
+      });
+    }
+
+    const bestMatchUrl = `https://www.duellinksmeta.com/skills/${encodeURIComponent(bestMatchSkill.trim())}`;
 
     try {
-      bestMatchUrl = `https://www.duellinksmeta.com/skills/${encodeURIComponent(bestMatchSkill)}`;
-
-      // Buscar HTML da skill
       const { data: skillHtml } = await axios.get(bestMatchUrl);
       const $ = cheerio.load(skillHtml);
 
-      // Extrair dados da skill
       const name = $('h1.h1').first().text().trim() || bestMatchSkill;
-
       const description = $('.skill-description').first().text().trim() ||
                           $('.skill-desc').first().text().trim() ||
                           'Descrição não encontrada.';
@@ -72,7 +78,6 @@ module.exports = {
         const text = $(el).text().trim();
         if (text) obtainSet.add(text);
       });
-
       $('.obtain-container').each((_, el) => {
         $(el).find('span').each((_, spanEl) => {
           const text = $(spanEl).text().trim();
@@ -85,7 +90,6 @@ module.exports = {
         ? obtainList.join(', ')
         : 'Forma de obtenção não encontrada.';
 
-      // Enviar embed
       await interaction.editReply({
         embeds: [{
           title: `Skill: ${name}`,
@@ -97,9 +101,21 @@ module.exports = {
       });
 
     } catch (error) {
-      console.error(error);
-      await interaction.editReply('❌ Erro ao buscar a skill. Tente novamente mais tarde.');
+      await interaction.deleteReply(); // Deleta a mensagem pública inicial
+
+      if (error.response?.status === 404) {
+        console.warn(`Skill não encontrada no site: ${bestMatchSkill}`);
+        return interaction.followUp({
+          content: '❌ Essa skill não existe no site.',
+          ephemeral: true
+        });
+      }
+
+      console.error('Erro inesperado ao buscar skill:', error.message || error);
+      return interaction.followUp({
+        content: '❌ Erro ao buscar a skill. Tente novamente mais tarde.',
+        ephemeral: true
+      });
     }
   },
 };
-
