@@ -16,17 +16,32 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 async function deployCommands() {
     try {
-        console.log(`Starting registration of ${commands.length} application (/) commands.`);
+        console.log(`🔄 Registrando ${commands.length} comandos...`);
 
-        const data = await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-            { body: commands },
-        );
+        if (process.env.COMMAND_SCOPE === "guild") {
+            // Múltiplas guilds separadas por ';'
+            const guildIds = process.env.GUILD_ID.split(';').map(id => id.trim());
+            
+            for (const guildId of guildIds) {
+                const data = await rest.put(
+                    Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
+                    { body: commands },
+                );
+                console.log(`✅ Comandos registrados na guilda ${guildId} (${data.length} comandos).`);
+            }
+        } else {
+            // Global
+            const data = await rest.put(
+                Routes.applicationCommands(process.env.CLIENT_ID),
+                { body: commands },
+            );
+            console.log(`🌍 Comandos registrados globalmente (${data.length} comandos).`);
+        }
 
-        console.log(`Successfully registered ${data.length} application (/) commands.`);
+        console.log(`✨ Todos os comandos foram registrados com sucesso!`);
     } catch (error) {
-        console.error(error);
+        console.error("❌ Erro ao registrar comandos:", error);
     }
-};
+}
 
 deployCommands();
