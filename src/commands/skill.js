@@ -18,12 +18,14 @@ module.exports = {
 
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused();
-    if (!focusedValue) return await interaction.respond([]);
+    if (!focusedValue) 
+        return await interaction.respond([]);
 
     try {
       const [_, skillServer] = await initServers();
       const skillSuggestions = await queryTrie(skillServer, String(focusedValue));
-      if (!skillSuggestions) return await interaction.respond([]);
+      if (!skillSuggestions) 
+        return await interaction.respond([]);
 
       const choices = skillSuggestions.slice(0, 25).map(skill => ({
         name: skill,
@@ -101,7 +103,7 @@ module.exports = {
       });
 
     } catch (error) {
-      await interaction.deleteReply(); // Deleta a mensagem pública inicial
+      await interaction.deleteReply(); 
 
       if (error.response?.status === 404) {
         console.warn(`Skill não encontrada no site: ${bestMatchSkill}`);

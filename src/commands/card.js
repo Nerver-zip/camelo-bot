@@ -1,13 +1,14 @@
-const { fetchCardStats } = require("../utils/fetchCardStats.js");
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { fetchCardData } = require("../utils/fetchCardData.js");
+const { SlashCommandBuilder } = require("discord.js");
 const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
 const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
 const { Matcher } = require("../utils/fuzzyfind/Matcher.js");
+const { buildCardEmbed } = require("../utils/buildCardEmbed.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('stats')
-    .setDescription('Mostra estatísticas de uma carta')
+    .setName('card')
+    .setDescription('Mostra as informações de uma carta')
     .addStringOption(option =>
       option.setName('nome')
         .setDescription('Nome da carta')
@@ -59,8 +60,9 @@ module.exports = {
     }
 
     try {
-      const stats = await fetchCardStats(bestMatchCard);
-      if (!stats) {
+      const data = await fetchCardData(bestMatchCard);
+      
+      if (!data) {
         await interaction.deleteReply();
         return interaction.followUp({
             content :  `❌ Não foi possível encontrar informações para **${cardName}**.`,
@@ -68,49 +70,7 @@ module.exports = {
         });
       }
 
-      const embed = new EmbedBuilder()
-          .setTitle(stats.Name)
-          .setThumbnail(stats.Image)
-          .addFields(
-            { name: "📘 Tipo", value: stats.Type, inline: true },
-            {
-              name: stats["Level"] ? "🔺 Nível" : "🔹 Sub-tipo",
-              value: stats["Level"] || stats["Sub-type"],
-              inline: true
-            }
-          )
-          .setColor("#00BFFF");
-
-        // Adiciona Popularidade Geral se existir
-        if (stats["Overall popularity"]) {
-          embed.addFields({
-            name: "🏆 Popularidade Geral",
-            value: stats["Overall popularity"],
-            inline: false
-          });
-        }
-
-        // Adiciona Entre o Mesmo Tipo se existir
-        if (stats["Among type"]) {
-          embed.addFields({
-            name: "📊 Entre o Mesmo Tipo",
-            value: stats["Among type"],
-            inline: false
-          });
-        }
-
-        // Adiciona os decks utilizados
-        for (const deck of stats["Used decks"] || []) {
-          const statStrings = Object.entries(deck.stats)
-            .map(([key, perc]) => `${key}: ${perc}`)
-            .join(" | ");
-          embed.addFields({
-            name: `• ${deck.deckName}`,
-            value: statStrings,
-            inline: false
-          });
-        }
-
+      const embed = buildCardEmbed(data);
       await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {

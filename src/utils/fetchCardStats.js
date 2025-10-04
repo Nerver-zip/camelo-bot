@@ -1,14 +1,13 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { getCorrectCardName } = require("./getCorrectCardName.js");
 
 async function fetchCardStats(cardName) {
 
-  const correctedName = await getCorrectCardName(cardName);
-  if (!correctedName) return null;
+  if (!cardName) 
+    return null;
 
   const baseUrl = "https://www.duellinksmeta.com/cards/";
-  const url = `${baseUrl}${encodeURIComponent(correctedName)}`;
+  const url = `${baseUrl}${encodeURIComponent(cardName)}`;
 
   try {
     const { data } = await axios.get(url, {
@@ -26,12 +25,17 @@ async function fetchCardStats(cardName) {
 
     const name = pageTitle;
 
-    const srcset = $(".image-wrapper img").attr("srcset");
+    const imgElement = $(".image-wrapper img.card-img");
+    const srcset = imgElement.attr("srcset");
+    const src = imgElement.attr("src");
+
     let image = null;
 
     if (srcset) {
       const srcList = srcset.split(",").map(item => item.trim().split(" ")[0]);
-      image = srcList[5] || srcList[4] || srcList[3] || srcList[2] || srcList[1] || srcList[0]; 
+      image = srcList[srcList.length - 1]; // Pega a maior resolução
+    } else if (src) {
+      image = src;
     }
 
     // Extrai tipo e sub-tipo (ou level/rank/link)
@@ -87,9 +91,9 @@ async function fetchCardStats(cardName) {
   }
 }
 
-//(async () => {
-//  const stats = await fetchCardStats("Forbidden drop");
-//  console.dir(stats, { depth: null });
-//})();
+/*(async () => {
+  const stats = await fetchCardStats("Swordsoul%20of%20Mo%20Ye");
+  console.dir(stats, { depth: null });
+})();*/
 
 module.exports = { fetchCardStats };
