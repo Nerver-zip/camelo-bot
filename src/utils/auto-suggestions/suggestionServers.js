@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 
 const cardServerPath = path.join(__dirname, "bin/cards-autosugg-server");
 const skillServerPath = path.join(__dirname, "bin/skills-autosugg-server");
+const archetypeServerPath = path.join(__dirname, "bin/archetypes-autosugg-server");
 
 function startServer(cmd) {
   return new Promise((resolve, reject) => {
@@ -39,6 +40,7 @@ async function initServers() {
     servers = await Promise.all([
       startServer(cardServerPath),
       startServer(skillServerPath),
+      startServer(archetypeServerPath),
     ]);
     global.runningServers = servers; // evita GC
   }
@@ -48,11 +50,13 @@ async function initServers() {
 module.exports = { initServers };
 
 /*(async () => {
-  const [cardServer, skillServer] = await Promise.all([
+  const [cardServer, skillServer, archetypeServer] = await Promise.all([
     startServer(cardServerPath),
-    startServer(skillServerPath)
+    startServer(skillServerPath),
+    startServer(archetypeServerPath),
   ]);
 
   console.log(await queryTrie(cardServer, "Blue-Eyes"));
   console.log(await queryTrie(skillServer, "Draw Sense"));
+  console.log(await queryTrie(archetypeServer, "Dark"));
 })();*/

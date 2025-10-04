@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer-core');
-const { getCorrectDeckName } = require("./getCorrectDeckName.js");
 
 require('dotenv').config();
 
@@ -9,12 +8,12 @@ function formatDeckName(name) {
 
 async function fetchTopDeckUrl(name) {
 
-  const correctedName = await getCorrectDeckName(name);
-  if (!correctedName) return null;
+  if (!name) 
+    return null;
 
   const baseUrl = 'https://www.duellinksmeta.com';
-  const url = `${baseUrl}/top-decks#deck=${encodeURIComponent(correctedName)}`;
-  const formattedName = formatDeckName(correctedName);
+  const url = `${baseUrl}/top-decks#deck=${encodeURIComponent(name)}`;
+  const formattedName = formatDeckName(name);
 
   const browser = await puppeteer.launch({
     headless: 'new',
