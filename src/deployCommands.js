@@ -16,10 +16,11 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 async function deployCommands() {
     try {
-        console.log(`🔄 Registrando ${commands.length} comandos...`);
+        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [] });
 
+        console.log(`🔄 Registrando ${commands.length} comandos...`);
+        
         if (process.env.COMMAND_SCOPE === "guild") {
-            // Múltiplas guilds separadas por ';'
             const guildIds = process.env.GUILD_ID.split(';').map(id => id.trim());
             
             for (const guildId of guildIds) {
@@ -30,7 +31,6 @@ async function deployCommands() {
                 console.log(`✅ Comandos registrados na guilda ${guildId} (${data.length} comandos).`);
             }
         } else {
-            // Global
             const data = await rest.put(
                 Routes.applicationCommands(process.env.CLIENT_ID),
                 { body: commands },
