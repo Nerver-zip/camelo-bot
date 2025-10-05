@@ -29,7 +29,7 @@ const client = new Client({
     
     Matcher.init();
     
-    await DeckController.init();
+    await DeckController.init({verbose : true});
 
     await initServers();
    

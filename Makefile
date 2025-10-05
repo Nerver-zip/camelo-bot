@@ -43,7 +43,6 @@ $(CARDS_BIN): $(CARDS_SRC) $(LIB_SRC) | $(BIN_DIR)
 $(SKILLS_BIN): $(SKILLS_SRC) $(LIB_SRC) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-
 $(ARCHETYPES_BIN): $(ARCHETYPES_SRC) $(LIB_SRC) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
@@ -51,9 +50,14 @@ $(ARCHETYPES_BIN): $(ARCHETYPES_SRC) $(LIB_SRC) | $(BIN_DIR)
 $(BIN_DIR):
 	mkdir -p $@
 
-# Limpeza
+# Limpeza de binários
 clean:
 	rm -f $(CARDS_BIN) $(SKILLS_BIN) $(ARCHETYPES_BIN)
 	@echo -e "$(GREEN)Binários removidos com sucesso.$(RESET)"
 
-.PHONY: all clean show_info
+# Limpeza de conteúdo local
+clean_local:
+	rm -rf $(SRC_DIR)/local/dump/* $(SRC_DIR)/local/charts/*
+	@echo -e "$(GREEN)Conteúdo de dump e charts removido com sucesso.$(RESET)"
+
+.PHONY: all clean clean_local show_info

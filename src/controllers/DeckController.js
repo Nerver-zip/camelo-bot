@@ -6,33 +6,38 @@ const axios = require('axios');
  * DeckController (singleton)
  * --------------------------
  * Mantém um mapa (arquetipo -> últimas 10 URLs) a partir dos sitemaps do DuelLinksMeta.
- * - Processamento global por lastmod (garante newest-first real)
+ * - Processamento global incremental (garante newest-first real)
  * - Cache local do sitemap 0 (xml0_cache.xml)
  * - Normalização de URLs para evitar mismatches por encoding / trailing slash
+ * - Usa a última URL processada como referência de atualização (hash posicional)
  */
 class DeckController {
   // ======== ESTADO GLOBAL (SINGLETON) ========
+  static verbose = true;
   static cachePath = path.join(__dirname, '../local/dump/deck_cache.json');
+  static lastUrlPath = path.join(path.dirname(DeckController.cachePath), 'last_url.txt'); // Última URL do último XML processado
   static xmlUrls = [
     'https://www.duellinksmeta.com/sitemap-top-decks-0.xml',
     'https://www.duellinksmeta.com/sitemap-top-decks-1.xml'
   ];
-  static updateInterval = 12 * 60 * 60 * 1000; // 12h em ms
+  static updateInterval = 21600000; // 6 horas em ms
 
-  static deckMap = new Map();       // Map(arquetipo -> [url1, url2, ...])
-  static lastUpdated = null;        // Timestamp da última atualização
-  static seenUrls = new Set();      // URLs normalizadas já vistas
+  static deckMap = new Map(); // Map(arquetipo -> [url1, url2, ...])
+  static lastUrl = null; // Última URL processada (string)
   static knownArchetypes = new Set(); // Arquétipos (lowercase) carregados do arquivo
   static xml0CachePath = path.join(path.dirname(DeckController.cachePath), 'xml0_cache.xml');
 
   // ---------- Helpers ----------
+  static log(...args) {
+    if (this.verbose) console.log(...args);
+  }
+  
   static normalizeUrl(raw) {
     if (!raw) return raw;
     let u = raw.trim();
     // remove trailing slash(es)
     while (u.endsWith('/')) u = u.slice(0, -1);
     try {
-      // tenta decodificar percent-encoding para normalizar (não obrigatório)
       u = decodeURIComponent(u);
     } catch (e) {
       // ignora se inválido
@@ -44,13 +49,21 @@ class DeckController {
    * Inicialização do singleton:
    * - Pode receber overrides: { cachePath, xmlUrls, updateInterval }
    */
-  static async init({ cachePath, xmlUrls, updateInterval } = {}) {
+  static async init({ cachePath, xmlUrls, updateInterval, verbose } = {}) {
     if (cachePath) this.cachePath = cachePath;
     if (xmlUrls && xmlUrls.length > 0) this.xmlUrls = xmlUrls;
     if (updateInterval) this.updateInterval = updateInterval;
+    if (typeof verbose === 'boolean') this.verbose = verbose;
 
-    // atualizar xml0CachePath caso cachePath tenha sido sobrescrito
+    // atualizar paths caso cachePath tenha sido sobrescrito
     this.xml0CachePath = path.join(path.dirname(this.cachePath), 'xml0_cache.xml');
+    this.lastUrlPath = path.join(path.dirname(this.cachePath), 'last_url.txt');
+
+    // --- Carrega lastUrl global salvo em disco ---
+    if (fs.existsSync(this.lastUrlPath)) {
+      const lu = fs.readFileSync(this.lastUrlPath, 'utf8').trim();
+      if (lu) this.lastUrl = this.normalizeUrl(lu);
+    }
 
     // Carrega lista de arquétipos (arquivo)
     const archetypePath = path.join(__dirname, '../local/dump/archetypes.txt');
@@ -59,7 +72,7 @@ class DeckController {
       for (const line of lines) {
         if (line.trim()) this.knownArchetypes.add(line.trim().toLowerCase());
       }
-      console.log(`[DeckController] ${this.knownArchetypes.size} arquétipos conhecidos carregados.`);
+      this.log(`[DeckController] ${this.knownArchetypes.size} arquétipos conhecidos carregados.`);
     } else {
       console.warn('[DeckController] Arquivo de arquétipos não encontrado.');
     }
@@ -67,10 +80,10 @@ class DeckController {
     await this.loadCache();
 
     if (this.deckMap.size === 0) {
-      console.log('[DeckController] Cache vazio — carregando dados iniciais...');
+      this.log('[DeckController] Cache vazio — carregando dados iniciais...');
       await this.forceUpdate();
     } else {
-      console.log('[DeckController] Cache carregado da memória local.');
+      this.log('[DeckController] Cache carregado da memória local.');
     }
 
     this.startScheduler();
@@ -86,12 +99,7 @@ class DeckController {
         const raw = fs.readFileSync(this.cachePath, 'utf8');
         const data = JSON.parse(raw);
         this.deckMap = new Map(data.map(([key, value]) => [key, value]));
-        console.log(`[DeckController] Cache carregado: ${this.deckMap.size} arquétipos.`);
-
-        // Inicializa seenUrls com URLs já no cache (normalizadas)
-        for (const urls of this.deckMap.values()) {
-          urls.forEach(url => this.seenUrls.add(this.normalizeUrl(url)));
-        }
+        this.log(`[DeckController] Cache carregado: ${this.deckMap.size} arquétipos.`);
       }
     } catch (err) {
       console.error('[DeckController] Erro ao carregar cache local:', err);
@@ -105,7 +113,7 @@ class DeckController {
     try {
       const serialized = JSON.stringify(Array.from(this.deckMap.entries()), null, 2);
       fs.writeFileSync(this.cachePath, serialized, 'utf8');
-      console.log('[DeckController] Cache salvo com sucesso.');
+      this.log('[DeckController] Cache salvo com sucesso.');
     } catch (err) {
       console.error('[DeckController] Erro ao salvar cache local:', err);
     }
@@ -115,13 +123,12 @@ class DeckController {
    * Parser de XML mais robusto:
    * - Extrai blocos <url>...</url>, pega <loc> e <lastmod> (quando houver)
    * - Determina o arquétipo com heurísticas (- -> ' ', plural 's')
-   * @returns Array<{archetype: string (lowercase), link: string, lastmod: number|null}>
+   * @returns Array<{archetype: string (lowercase), link: string, lastmod: string|null}>
    */
   static parseXml(xml) {
     const results = [];
     if (!xml) return results;
 
-    // Itera blocos <url>...</url>
     const urlBlockRE = /<url\b[^>]*>([\s\S]*?)<\/url>/g;
     let blockMatch;
     while ((blockMatch = urlBlockRE.exec(xml)) !== null) {
@@ -134,27 +141,19 @@ class DeckController {
       const lmMatch = /<lastmod>(.*?)<\/lastmod>/i.exec(block);
       let lastmod = null;
       if (lmMatch && lmMatch[1]) {
-        const d = new Date(lmMatch[1].trim());
-        if (!isNaN(d)) lastmod = d.getTime();
+        lastmod = lmMatch[1].trim(); // mantém string diretamente
       }
 
-      // identifica o archetype pela primeira parte que bater com knownArchetypes
       const parts = link.split('/').filter(Boolean);
-
       const archetypeSegment = parts.find(p => {
         const normalized = p.replace(/-/g, ' ').toLowerCase();
-
         if (this.knownArchetypes.has(normalized)) return true;
-
-        // tenta plural simples
         if (this.knownArchetypes.has(normalized + 's')) return true;
-
         return false;
       });
 
       if (archetypeSegment) {
         const normalized = archetypeSegment.replace(/-/g, ' ').toLowerCase();
-        // guardamos archetype em lowercase — consistente com getDecklists(archetype.toLowerCase())
         results.push({ archetype: normalized, link, lastmod });
       }
     }
@@ -165,90 +164,86 @@ class DeckController {
   /**
    * Atualiza os dados manualmente, lendo os XMLs remotos e atualizando o Map.
    *
-   * Estratégia:
-   *  - Lê todos os XMLs (usa cache local para xml0).
-   *  - Junta todos os <url> encontrados, ordena por lastmod.
-   *  - Processa globalmente do mais recente para o mais antigo.
-   *  - Se encontrar uma URL já vista (seenUrls), interrompe (restantes são antigos).
-   *  - Para cada archetype, pula se já tiver 10 itens.
+   * Nova revisão:
+   * - Usa última URL salva (hash posicional) como ponto de referência.
+   * - Itera o XML do mais recente para o mais antigo.
+   * - Para ao encontrar a URL anterior.
+   * - Salva nova última URL global no disco junto com o cache.
+   * - Log reduzido: exibe apenas o total de novos decks adicionados.
    */
   static async forceUpdate() {
-    console.log('[DeckController] Iniciando atualização de dados...');
+    this.log('[DeckController] Iniciando atualização de dados...');
 
     try {
-      const combined = []; // todos os {archetype, link, lastmod}
+      let totalAdded = 0;
 
-      // carrega cada sitemap (xmlUrls). 0.xml é cacheado localmente
       for (let i = 0; i < this.xmlUrls.length; i++) {
         const url = this.xmlUrls[i];
         let data;
 
+        // XML 0 cacheado localmente
         if (i === 0 && fs.existsSync(this.xml0CachePath)) {
-          console.log(`[DeckController] Usando cache local para XML 0: ${this.xml0CachePath}`);
+          this.log(`[DeckController] Usando cache local para XML 0: ${this.xml0CachePath}`);
           data = fs.readFileSync(this.xml0CachePath, 'utf8');
         } else {
-          console.log(`[DeckController] Baixando dump XML: ${url}`);
+          this.log(`[DeckController] Baixando dump XML: ${url}`);
           const response = await axios.get(url, { responseType: 'text' });
           data = response.data;
 
           if (i === 0) {
             try {
               fs.writeFileSync(this.xml0CachePath, data, 'utf8');
-              console.log(`[DeckController] XML 0 salvo no cache local: ${this.xml0CachePath}`);
+              this.log(`[DeckController] XML 0 salvo no cache local: ${this.xml0CachePath}`);
             } catch (e) {
               console.warn('[DeckController] Falha ao salvar xml0 cache local:', e.message || e);
             }
           }
         }
 
-        // parse e concatena
-        const parsed = this.parseXml(data);
-        if (parsed && parsed.length) combined.push(...parsed);
-      }
+        const decks = this.parseXml(data);
+        if (!decks || decks.length === 0) continue;
 
-      if (combined.length === 0) {
-        console.log('[DeckController] Nenhum URL encontrado nos XMLs.');
-        return;
-      }
+        // === NOVO: salva última URL REAL do XML (último item da lista) ===
+        const lastUrlFromXML = this.normalizeUrl(decks[decks.length - 1].link);
 
-      // Ordena por lastmod asc (antigo -> novo). null lastmod fica no início.
-      combined.sort((a, b) => {
-        const ta = a.lastmod || 0;
-        const tb = b.lastmod || 0;
-        return ta - tb;
-      });
+        let foundOldUrl = false;
 
-      // Processa do mais recente para o mais antigo
-      for (let k = combined.length - 1; k >= 0; k--) {
-        const { archetype, link } = combined[k];
-        const normalizedLink = this.normalizeUrl(link);
+        // Itera do mais recente para o mais antigo
+        for (let k = 0; k < decks.length; k++) {
+          const { archetype, link } = decks[k];
+          const normLink = this.normalizeUrl(link);
 
-        // Se já vimos a URL (normalizada), podemos parar — o resto será mais antigo.
-        if (this.seenUrls.has(normalizedLink)) {
-          console.log('[DeckController] Encontrado link já visto, finalizando atualização incremental.');
-          break;
+          if (this.lastUrl && normLink === this.lastUrl) {
+            foundOldUrl = true;
+            this.log(`[DeckController] Última URL anterior encontrada (${this.lastUrl}). Parando atualização incremental.`);
+            break;
+          }
+
+          const lower = archetype.toLowerCase();
+          const arr = this.deckMap.get(lower) || [];
+
+          if (!arr.includes(normLink)) {
+            arr.unshift(normLink);
+            if (arr.length > 10) arr.pop();
+            this.deckMap.set(lower, arr);
+            totalAdded++;
+          }
         }
 
-        // Se o archetype já tem 10 builds, não inserimos mais para ele (pula)
-        const lower = archetype.toLowerCase();
-        if (this.deckMap.has(lower) && this.deckMap.get(lower).length >= 10) {
-          // não marca como visto (pois não processamos essa link para armazenamento),
-          // apenas pula e continua
-          continue;
+        // === Atualiza marcador global com a última URL real do XML ===
+        if (!this.lastUrl || lastUrlFromXML !== this.lastUrl) {
+          this.lastUrl = lastUrlFromXML;
+          this.log(`[DeckController] Atualizado lastUrl global para ${this.lastUrl}`);
         }
 
-        // Marca como vista (normalize)
-        this.seenUrls.add(normalizedLink);
-
-        if (!this.deckMap.has(lower)) this.deckMap.set(lower, []);
-        const arr = this.deckMap.get(lower);
-        arr.push(link);
-        if (arr.length > 10) arr.shift();
+        if (foundOldUrl) break;
       }
 
-      this.lastUpdated = new Date();
       this.saveCache();
-      console.log('[DeckController] Atualização completa.');
+      fs.writeFileSync(this.lastUrlPath, this.lastUrl, 'utf8');
+      this.log(`[DeckController] lastUrl global salvo em disco: ${this.lastUrlPath}`);
+
+      this.log(`[DeckController] Atualização completa. Novos decks adicionados: ${totalAdded}`);
 
     } catch (err) {
       console.error('[DeckController] Erro durante atualização:', err);
@@ -259,7 +254,7 @@ class DeckController {
    * Inicia o scheduler periódico de atualização (a cada X horas).
    */
   static startScheduler() {
-    console.log(`[DeckController] Scheduler iniciado (atualiza a cada ${this.updateInterval / 3600000}h).`);
+    this.log(`[DeckController] Scheduler iniciado (atualiza a cada ${this.updateInterval / 3600000}h).`);
     setInterval(() => this.forceUpdate(), this.updateInterval);
   }
 
@@ -273,12 +268,5 @@ class DeckController {
     return this.deckMap.get(archetype.toLowerCase()) || [];
   }
 }
-/*
-(async () => {
-  await DeckController.init();
 
-  const decks = DeckController.getDecklists('Blue Eyes');
-  console.log(decks);
-})();
-*/
 module.exports = { DeckController };
