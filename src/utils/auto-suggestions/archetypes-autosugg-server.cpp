@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     // Caminho do dump relativo ao binário
     fs::path exePath = fs::canonical(argv[0]).parent_path();      // diretório do binário
-    fs::path dumpPath = exePath / "../../local/dump/archetypes.txt";   // dump dir
+    fs::path dumpPath = exePath / "../../../local/dump/archetypes.txt";   // dump dir
     dumpPath = fs::canonical(dumpPath);                           // transforma em caminho absoluto
 
     cout << "Abrindo dump de archetypes em: " << dumpPath << "\n";

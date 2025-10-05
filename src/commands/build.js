@@ -1,34 +1,135 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { fetchTopDeckUrl } = require('../utils/fetchTopDeckUrl.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
+const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
+const { Matcher } = require("../utils/fuzzyfind/Matcher.js");
+const { DeckController } = require("../controllers/DeckController.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('build')
-    .setDescription('Busca a primeira build de um arquétipo no DLM')
+    .setName('builds')
+    .setDescription('Retorna até as ultimas 10 builds do deck upadas no DLM')
     .addStringOption(option =>
-      option.setName('arquetipo')
-        .setDescription('Nome do arquétipo para buscar a build')
+      option.setName('nome')
+        .setDescription('Nome do deck/archetype')
         .setRequired(true)
+        .setAutocomplete(true)
     ),
-
-  async execute(interaction) {
-    await interaction.deferReply(); // visível para todos
-
-    const archetype = interaction.options.getString('arquetipo');
+  
+  async autocomplete(interaction) {
+    const focusedValue = interaction.options.getFocused();
+    if (!focusedValue) 
+        return await interaction.respond([]);
 
     try {
-      const url = await fetchTopDeckUrl(archetype);
+        const [_, __, archetypeServer] = await initServers();
+        const archetypeSuggestions = await queryTrie(archetypeServer, focusedValue);
+        if (!archetypeSuggestions) 
+            return await interaction.respond([]);
 
-      if (url) {
-        await interaction.editReply(`${url}`);
-      } else {
-        await interaction.editReply(
-          '❌ Não foi possível encontrar um deck para esse arquétipo. Atenção à escrita ou plural!'
-        );
-      }
+        const choices = archetypeSuggestions.slice(0, 25).map(archetype => ({
+            name: archetype,
+            value: `suggested|${archetype}`
+        }));
+
+        await interaction.respond(choices);
     } catch (error) {
-      console.error(error);
-      await interaction.editReply('❌ Erro ao buscar o deck. Tente novamente mais tarde.');
-    }
+        console.error('Autocomplete error:', error.message || error);
+        await interaction.respond([]);
+    }  
   },
+
+  async execute(interaction) {
+    await interaction.deferReply(); 
+
+    const input = interaction.options.getString('nome');
+    const [flag, archetypeNameRaw] = input.split('|');
+    const fromSuggestion = flag === 'suggested';
+    const archetypeName = fromSuggestion ? archetypeNameRaw : input;
+
+    const bestMatchArchetype = fromSuggestion
+      ? archetypeName
+      : Matcher.archetype(archetypeName.toLowerCase());
+
+    if (!bestMatchArchetype) {
+      await interaction.deleteReply();
+      return interaction.followUp({
+        content: '❌ Deck/archetype não encontrado.',
+        ephemeral: true
+      });
+    }
+
+    try {
+        const links = DeckController.getDecklists(bestMatchArchetype); 
+        
+        if(!bestMatchArchetype){
+            await interaction.deleteReply();
+            return interaction.followUp({
+                content: '❌ Builds não encontradas.',
+                ephemeral: true
+            });
+        }
+
+        let currentIndex = 0;
+
+        // Função para criar a linha de botões com contador
+        const createRow = () => {
+          return new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('prev')
+              .setLabel('⬅️')
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId('counter')
+              .setLabel(`${currentIndex + 1}/${links.length}`)
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true), // botão só para exibir o contador
+            new ButtonBuilder()
+              .setCustomId('next')
+              .setLabel('➡️')
+              .setStyle(ButtonStyle.Primary)
+          );
+        };
+
+        const message = await interaction.editReply({ content: links[currentIndex], components: [createRow()] });
+        
+        //Duração atual de interatividade: 1 dia (86400000ms)
+        //Opções plausiveis: 1 hora: 3600000ms; 30 minutos: 1800000; 5 minutos: 300000
+        const collector = message.createMessageComponentCollector({ time: 86400000 });
+
+        collector.on('collect', i => {
+          // Alterna o índice
+          if (i.customId === 'next') {
+            currentIndex = (currentIndex + 1) % links.length;
+          } else if (i.customId === 'prev') {
+            currentIndex = (currentIndex - 1 + links.length) % links.length;
+          }
+
+          // Atualiza a mensagem com o novo link e contador
+          i.update({ content: links[currentIndex], components: [createRow()] });
+        });
+
+        collector.on('end', async () => {
+          try {
+            const disabledRow = new ActionRowBuilder().addComponents(
+              createRow().components.map(btn => ButtonBuilder.from(btn).setDisabled(true))
+            );
+            await message.edit({ components: [disabledRow] });
+          } catch (err) {
+            if (err.code === 10008) {
+              console.warn('[DeckCommand] Mensagem deletada antes do collector encerrar. Ignorando.');
+            } else {
+              console.error('[DeckCommand] Erro ao editar mensagem:', err);
+            }
+          }
+        });
+
+    } catch (error) {
+      await interaction.deleteReply();
+      console.error('Erro inesperado ao buscar builds:', error.message || error);
+      return interaction.followUp({
+        content: '❌ Erro ao buscar as builds. Tente novamente mais tarde.',
+        ephemeral: true
+      });    
+    }
+  }
 };

@@ -23,9 +23,9 @@ class Matcher {
         return;
 
     // Caminhos dos arquivos locais
-    const cardFile = path.join(__dirname, "../local/dump/cards.txt");
-    const skillFile = path.join(__dirname, "../local/dump/skills.txt");
-    const archetypeFile = path.join(__dirname, "../local/dump/archetypes.txt");
+    const cardFile = path.join(__dirname, "../../local/dump/cards.txt");
+    const skillFile = path.join(__dirname, "../../local/dump/skills.txt");
+    const archetypeFile = path.join(__dirname, "../../local/dump/archetypes.txt");
 
     // Lê listas
     this._cardList = this._readFile(cardFile);
@@ -38,7 +38,7 @@ class Matcher {
     this._processList(this._archetypeList, this._archetypeLower, this._archetypeMap);
 
     this._initialized = true;
-    console.log("\nFuzzy matcher está online");
+    console.log("\nFuzzy matcher está online\n");
   }
 
   // ---------- métodos privados ----------

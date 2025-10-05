@@ -32,7 +32,7 @@ async function coletarArquetypes() {
     });
 
     // 5) Salvar em archetypes.txt, uma por linha
-    const outputDir = path.join(__dirname, '../../local/dump');
+    const outputDir = path.join(__dirname, '../../../local/dump');
     const outputFile = path.join(outputDir, "archetypes.txt");
     
     fs.mkdirSync(outputDir, { recursive: true });
