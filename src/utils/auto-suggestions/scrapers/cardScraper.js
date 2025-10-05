@@ -90,7 +90,7 @@ const isFilterMode = args.filter;
     
     bar.stop();
     
-    const outputDir = path.join(__dirname, "../../local/dump"); 
+    const outputDir = path.join(__dirname, "../../../local/dump"); 
     const outputFile = path.join(outputDir, "cards.txt");
 
 

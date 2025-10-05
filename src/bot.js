@@ -6,6 +6,7 @@ const { scheduleChartUpdate } = require('./utils/scheduleChartUpdate');
 const { initServers } = require('./utils/auto-suggestions/suggestionServers.js');
 const { Matcher } = require('./utils/fuzzyfind/Matcher.js');
 const { initAutoSuggestionLists } = require('./utils/auto-suggestions/initAutoSuggestionLists.js');
+const { DeckController } = require('./controllers/DeckController.js');
 
 // ========== Discord Client ==========
 const client = new Client({
@@ -22,13 +23,16 @@ const client = new Client({
     const art = fs.readFileSync('art.txt', 'utf8');
     console.log(`${art}\n\n`);
 
-    console.log("Importando arquivos...");
+    console.log("Importando arquivos...\n");
     await initAutoSuggestionLists();
-    console.log("Arquivos importados.");
-
+    console.log("Arquivos importados.\n");
+    
     Matcher.init();
+    
+    await DeckController.init();
 
     await initServers();
+   
     console.log("Servers inicializados.");
 
     // Coleção de comandos

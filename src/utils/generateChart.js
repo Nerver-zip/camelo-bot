@@ -97,7 +97,7 @@ async function generateChart(deckData, outputFile = 'chart.png') {
     plugins: ['chartjs-plugin-datalabels']
   };
 
-  const outputDir = path.resolve(__dirname, 'local/charts');
+  const outputDir = path.resolve(__dirname, '../local/charts');
   if (!fs.existsSync(outputDir)) 
     fs.mkdirSync(outputDir, { recursive: true });
 

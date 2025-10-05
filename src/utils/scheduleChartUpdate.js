@@ -5,7 +5,7 @@ async function scheduleChartUpdate() {
   try {
     console.log('🔄 Gerando gráfico...');
     const decks = await fetchMetaStats();
-    await generateChart(decks); // gera e salva em utils/local/charts
+    await generateChart(decks); // gera e salva em local/charts
     console.log('✅ Gráfico atualizado.');
   } catch (err) {
     console.error('❌ Erro ao gerar gráfico:', err);
