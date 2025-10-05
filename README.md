@@ -103,7 +103,7 @@ Novas funcionalidades estão sendo adicionadas com foco em estabilidade, perform
 - g++ — usado para compilar e os módulos C++ integrados.
 - Cloudinary — serviço externo para upload e armazenamento de imagens.
 - Chromium/Google Chrome - necessário para web scraping com Puppeteer.
-- É preciso criar registrar seu bot em discord.dev e configurá-lo da seguinte forma:
+- É preciso criar registrar seu bot em [discord.dev](https://discord.com/developers/applications) e configurá-lo da seguinte forma:
   ```
   Scopes
   applications.commands   bot
@@ -118,10 +118,13 @@ Novas funcionalidades estão sendo adicionadas com foco em estabilidade, perform
      ```
 - 2. Crie um arquivo .env na raíz do projeto e adicione as suas credenciais. Esqueleto:
      ```dotenv
+     #Token gerado no registro do bot
      TOKEN=TokenFornecidoPeloDiscord
   
-     # Pode passar multiplas guilds separando por ;
-     CLIENT_ID=IdDoSeuBotFornecidoPeloDiscord
+     #Id do seu bot dado pelo Discord
+     CLIENT_ID=123456789
+     
+     # IDs do seu seus servidores. Pode passar multiplas guilds separando por ;
      GUILD_ID=123456789;987654321
 
      CHROME_PATH=ajuste para o caminho do chrome/chromium na sua máquina
@@ -140,11 +143,15 @@ Novas funcionalidades estão sendo adicionadas com foco em estabilidade, perform
      cd camelo-bot
      make
      ```
-- 4. Registrar comandos
+- 4. Instalar dependências
+     ```nodejs
+     npm install
+     ```
+- 5. Registrar comandos
      ```bash
      node src/deployCommands.js
      ```
-- 5. Iniciar
+- 6. Iniciar
      ```bash
      node src/bot.js
      ```
