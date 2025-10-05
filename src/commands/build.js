@@ -96,16 +96,21 @@ module.exports = {
         //Opções plausiveis: 1 hora: 3600000ms; 30 minutos: 1800000; 5 minutos: 300000
         const collector = message.createMessageComponentCollector({ time: 86400000 });
 
-        collector.on('collect', i => {
-          // Alterna o índice
+        collector.on('collect', async i => {
+          if (i.user.id !== interaction.user.id) {
+            return i.reply({
+              content: '❌ Sai fora camelo! Somente quem usou o comando pode usar os botões.',
+              ephemeral: true
+            });
+          }
+
           if (i.customId === 'next') {
             currentIndex = (currentIndex + 1) % links.length;
           } else if (i.customId === 'prev') {
             currentIndex = (currentIndex - 1 + links.length) % links.length;
           }
 
-          // Atualiza a mensagem com o novo link e contador
-          i.update({ content: links[currentIndex], components: [createRow()] });
+          await i.update({ content: links[currentIndex], components: [createRow()] });
         });
 
         collector.on('end', async () => {
