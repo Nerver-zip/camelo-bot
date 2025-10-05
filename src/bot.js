@@ -25,7 +25,7 @@ const client = new Client({
 
     console.log("Importando arquivos...\n");
     await initAutoSuggestionLists();
-    console.log("Arquivos importados.\n");
+    console.log("Arquivos importados.");
     
     Matcher.init();
     
@@ -63,7 +63,7 @@ client.once('clientReady', async () => {
   client.user.setPresence({
     status: 'online',
     activities: [
-      { name: '🐪 🐫', type: ActivityType.Playing }
+      { name: '🐪 Online nas horas vagas 🐫' }
     ],
   });
 

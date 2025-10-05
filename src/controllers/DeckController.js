@@ -242,8 +242,8 @@ class DeckController {
 
         if (!this.deckMap.has(lower)) this.deckMap.set(lower, []);
         const arr = this.deckMap.get(lower);
-        arr.unshift(link);
-        if (arr.length > 10) arr.pop();
+        arr.push(link);
+        if (arr.length > 10) arr.shift();
       }
 
       this.lastUpdated = new Date();
