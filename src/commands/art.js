@@ -1,14 +1,13 @@
-const { fetchCardData } = require("../utils/fetchCardData.js");
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { initServers } = require("../utils/auto-suggestions/suggestionServers.js")
 const { queryTrie } = require("../utils/auto-suggestions/queryTrie.js");
 const { Matcher } = require("../utils/fuzzyfind/Matcher.js");
-const { buildCardEmbed } = require("../utils/buildCardEmbed.js");
+const { fetchCardArt } = require("../utils/fetchCardArt.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('card')
-    .setDescription('Mostra as informações de uma carta')
+    .setName('art')
+    .setDescription('Retorna a arte de uma carta')
     .addStringOption(option =>
       option.setName('nome')
         .setDescription('Nome da carta')
@@ -60,18 +59,21 @@ module.exports = {
     }
 
     try {
-      const data = await fetchCardData(bestMatchCard);
+      const imgUrl = await fetchCardArt(bestMatchCard);
       
-      if (!data) {
+      if (!imgUrl) {
         await interaction.deleteReply();
         return interaction.followUp({
-            content :  `❌ Não foi possível encontrar informações para **${cardName}**.`,
+            content :  `❌ Não foi possível encontrar a arte para **${cardName}**.`,
             ephemeral : true
         });
       }
 
-      const embed = buildCardEmbed(data);
-      await interaction.editReply({ embeds: [embed] });
+      const embed = new EmbedBuilder()
+        .setImage(imgUrl) 
+        .setColor("#00BFFF");
+
+      await interaction.editReply({ embeds: [embed]});
 
     } catch (error) {
       await interaction.deleteReply();
@@ -82,9 +84,9 @@ module.exports = {
             ephemeral : true
         });
       }
-      console.error('Erro inesperado ao buscar informações de carta:', error.message || error);
+      console.error('Erro inesperado ao buscar arte de carta:', error.message || error);
       return interaction.followUp({
-        content: '❌ Erro ao buscar os card stats. Tente novamente mais tarde.',
+        content: '❌ Erro ao buscar arte de carta. Tente novamente mais tarde.',
         ephemeral: true
       });    
     }

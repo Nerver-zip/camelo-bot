@@ -9,13 +9,13 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const cardCache = new Map();
+const artCache = new Map();
 
-async function fetchCardData(cardName) {
+async function fetchCardArt(cardName) {
   if (!cardName) return null;
 
-  if (cardCache.has(cardName)) {
-    return cardCache.get(cardName);
+  if (artCache.has(cardName)) {
+    return artCache.get(cardName);
   }
 
   // Busca na API do YGOPRODeck
@@ -29,7 +29,7 @@ async function fetchCardData(cardName) {
     return null;
   }
 
-  const publicId = cardData.name; 
+  const publicId = `${cardData.name}_cropped`; 
   const cloudURL = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/v1/yugioh_cards/${encodeURIComponent(publicId)}.jpg`;
 
   // 4️⃣Tenta verificar se a imagem existe
@@ -38,7 +38,7 @@ async function fetchCardData(cardName) {
   } catch (err) {
       // qualquer erro assume que a imagem não existe
         try {
-            const imageResponse = await axios.get(cardData.card_images[0].image_url, { responseType: 'arraybuffer' });
+            const imageResponse = await axios.get(cardData.card_images[0].image_url_cropped, { responseType: 'arraybuffer' });
             const buffer = Buffer.from(imageResponse.data);
             await new Promise((resolve, reject) => {
             cloudinary.v2.uploader.upload_stream(
@@ -51,30 +51,14 @@ async function fetchCardData(cardName) {
       }
   }
 
-  // Monta objeto final
-  const cardObj = {
-    name: cardData.name,
-    description: cardData.desc,
-    type: cardData.type,
-    typeLine: cardData.typeline || null,
-    attribute: cardData.attribute || null,
-    level: cardData.level || null,
-    humanReadable: cardData.humanReadableCardType || null,
-    linkVal: cardData.linkval || null,
-    archetype: cardData.archetype || null,
-    atk: cardData.atk || null,
-    def: cardData.def || null,
-    imgURL: cloudURL,
-  };
+  artCache.set(cardName, cloudURL);
 
-  cardCache.set(cardName, cardObj);
-
-  return cardObj;
+  return cloudURL;
 }
-
-/*(async () =>{
-    const cardInfo = await fetchCardData("Polymerization");
-    console.dir(cardInfo, {depth: null});
-})();*/
-
-module.exports = { fetchCardData }
+/*
+(async () =>{
+    const cardArt = await fetchCardArt("Polymerization");
+    console.log(cardArt);
+})();
+*/
+module.exports = { fetchCardArt }
