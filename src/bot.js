@@ -1,11 +1,8 @@
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, GatewayIntentBits, ActivityType } = require('discord.js');
-const { scheduleChartUpdate } = require('./utils/scheduleChartUpdate');
-const { initServers } = require('./utils/auto-suggestions/suggestionServers.js');
-const { Matcher } = require('./utils/fuzzyfind/Matcher.js');
-const { initAutoSuggestionLists } = require('./utils/auto-suggestions/initAutoSuggestionLists.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate } = require('./scheduler.js');
 const { DeckController } = require('./controllers/DeckController.js');
 
 // ========== Discord Client ==========
@@ -24,17 +21,16 @@ const client = new Client({
     console.log(`${art}\n\n`);
 
     console.log("Importando arquivos...\n");
-    await initAutoSuggestionLists();
-    console.log("Arquivos importados.");
-    
-    Matcher.init();
+    await scheduleLocalFilesUpdate();
+
+    scheduleMatcherUpdate();
     
     await DeckController.init({verbose : true});
 
-    await initServers();
-   
-    console.log("Servers inicializados.");
+    await scheduleTournamentUpdate();
 
+    await scheduleChartUpdate();
+    
     // Coleção de comandos
     client.commands = new Collection();
     const commandsPath = path.join(__dirname, 'commands');
@@ -67,7 +63,6 @@ client.once('clientReady', async () => {
     ],
   });
 
-  scheduleChartUpdate();
 });
 
 //---------------Interaction Listener-------------------

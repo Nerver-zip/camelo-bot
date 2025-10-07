@@ -82,7 +82,7 @@ module.exports = {
               .setCustomId('counter')
               .setLabel(`${currentIndex + 1}/${links.length}`)
               .setStyle(ButtonStyle.Secondary)
-              .setDisabled(true), // botão só para exibir o contador
+              .setDisabled(true), 
             new ButtonBuilder()
               .setCustomId('next')
               .setLabel('➡️')

@@ -8,9 +8,6 @@ module.exports = {
     .setDescription('Mostra o gráfico atualizado do meta'),
 
   async execute(interaction) {
-    console.log('Comando /meta acionado');
-
-    // Defere a resposta para evitar timeout
     await interaction.deferReply();
 
     try {

@@ -41,6 +41,19 @@ class Matcher {
     console.log("\nFuzzy matcher está online\n");
   }
 
+  static reload() {
+    this._initialized = false;
+    this._cardList = [];
+    this._skillList = [];
+    this._archetypeList = [];
+    this._cardLower = [];
+    this._skillLower = [];
+    this._archetypeLower = [];
+    this._cardMap.clear();
+    this._skillMap.clear();
+    this._archetypeMap.clear();
+  }
+
   // ---------- métodos privados ----------
 
   static _readFile(filePath) {

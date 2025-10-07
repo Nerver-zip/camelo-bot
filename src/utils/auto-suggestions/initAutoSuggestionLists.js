@@ -18,9 +18,9 @@ function runScript(script, args = []) {
 }
 
 async function initAutoSuggestionLists() {
-    const cardScript = path.join(__dirname, 'scrapers/cardScraper.js');
-    const skillScript = path.join(__dirname, 'scrapers/skillScraper.js');
-    const archetypeScript = path.join(__dirname, 'scrapers/archetypeScraper.js');
+    const cardScript = path.join(__dirname, '../scrapers/cardScraper.js');
+    const skillScript = path.join(__dirname, '../scrapers/skillScraper.js');
+    const archetypeScript = path.join(__dirname, '../scrapers/archetypeScraper.js');
 
     // Executar em paralelo
     await Promise.all([

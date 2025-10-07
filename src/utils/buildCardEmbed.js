@@ -55,9 +55,9 @@ function buildCardEmbed(cardObj) {
   if (cardObj.archetype) {
     fields.push({ name: 'Arquétipo', value: cardObj.archetype, inline: true });
   }
-
   const embed = new EmbedBuilder()
     .setTitle(cardObj.name)
+    .setURL(`https://duellinksmeta.com/cards/${encodeURIComponent(cardObj.name)}`)
     .setDescription(cardObj.description)
     .setThumbnail(cardObj.imgURL)
     .addFields(fields)

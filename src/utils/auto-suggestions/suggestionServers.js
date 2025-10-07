@@ -6,11 +6,14 @@ const cardServerPath = path.join(__dirname, "bin/cards-autosugg-server");
 const skillServerPath = path.join(__dirname, "bin/skills-autosugg-server");
 const archetypeServerPath = path.join(__dirname, "bin/archetypes-autosugg-server");
 
+let servers = [];
+
+// Função para iniciar um servidor
 function startServer(cmd) {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, [], {
       cwd: path.dirname(cmd),
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
     });
 
     let serverReady = false;
@@ -33,17 +36,24 @@ function startServer(cmd) {
   });
 }
 
-let servers = [];
-
 async function initServers() {
-  if (servers.length === 0) {
-    servers = await Promise.all([
-      startServer(cardServerPath),
-      startServer(skillServerPath),
-      startServer(archetypeServerPath),
-    ]);
-    global.runningServers = servers; // evita GC
+  // Mata servidores antigos, se existirem
+  for (const proc of servers) {
+    if (proc && !proc.killed) {
+      proc.kill();
+      console.log(`[${proc.spawnfile}] killed`);
+    }
   }
+
+  // Inicia novos servidores
+  servers = await Promise.all([
+    startServer(cardServerPath),
+    startServer(skillServerPath),
+    startServer(archetypeServerPath),
+  ]);
+
+  global.runningServers = servers; // evita GC
+  console.log("Todos os servidores foram iniciados/reiniciados com sucesso!");
   return servers;
 }
 
