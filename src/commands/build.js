@@ -21,7 +21,7 @@ module.exports = {
         return await interaction.respond([]);
 
     try {
-        const [_, __, archetypeServer] = await initServers();
+        const [_, __, archetypeServer] = await initServers(false);
         const archetypeSuggestions = await queryTrie(archetypeServer, focusedValue);
         if (!archetypeSuggestions) 
             return await interaction.respond([]);

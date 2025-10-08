@@ -21,7 +21,7 @@ module.exports = {
         return await interaction.respond([]);
 
     try {
-        const [cardServer, _] = await initServers();
+        const [cardServer, _] = await initServers(false);
         const cardSuggestions = await queryTrie(cardServer, focusedValue);
         if (!cardSuggestions) 
             return await interaction.respond([]);

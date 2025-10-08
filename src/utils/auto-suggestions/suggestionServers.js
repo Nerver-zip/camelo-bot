@@ -36,12 +36,17 @@ function startServer(cmd) {
   });
 }
 
-async function initServers() {
+async function initServers(kill = true) {
+  if (!kill && servers && servers.length)
+    return servers;
+
   // Mata servidores antigos, se existirem
-  for (const proc of servers) {
-    if (proc && !proc.killed) {
-      proc.kill();
-      console.log(`[${proc.spawnfile}] killed`);
+  if (kill && servers && servers.length) {
+    for (const proc of servers) {
+      if (proc && typeof proc.kill === 'function' && !proc.killed) {
+        proc.kill();
+        console.log(`[${proc.spawnfile || 'server'}] killed`);
+      }
     }
   }
 
@@ -56,7 +61,6 @@ async function initServers() {
   console.log("Todos os servidores foram iniciados/reiniciados com sucesso!");
   return servers;
 }
-
 module.exports = { initServers };
 
 /*(async () => {

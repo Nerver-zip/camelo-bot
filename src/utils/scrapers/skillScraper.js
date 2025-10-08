@@ -32,7 +32,7 @@ async function coletarSkills() {
     });
     
     // 5) Salvar em skills.txt, uma por linha
-    const outputDir = path.join(__dirname, '../../../local/dump');
+    const outputDir = path.join(__dirname, '../../local/dump');
     const outputFile = path.join(outputDir, "skills.txt");
     
     fs.mkdirSync(outputDir, { recursive: true });

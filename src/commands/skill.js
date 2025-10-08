@@ -22,7 +22,7 @@ module.exports = {
         return await interaction.respond([]);
 
     try {
-      const [_, skillServer] = await initServers();
+      const [_, skillServer] = await initServers(false);
       const skillSuggestions = await queryTrie(skillServer, String(focusedValue));
       if (!skillSuggestions) 
         return await interaction.respond([]);

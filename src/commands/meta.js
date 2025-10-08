@@ -15,7 +15,7 @@ module.exports = {
       const chartPath = path.resolve(__dirname, '../local/charts/chart.png');
 
       if (!fs.existsSync(chartPath)) {
-        return interaction.editReply('❌ Nenhum gráfico encontrado. Gere o gráfico antes de usar este comando.');
+        return interaction.editReply('❌ Falha ao buscar gráfico.');
       }
 
       const attachment = new AttachmentBuilder(chartPath, { name: 'meta.png' });
