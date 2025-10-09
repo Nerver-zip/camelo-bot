@@ -2,7 +2,6 @@ const axios = require('axios');
 const cloudinary = require('cloudinary');
 require('dotenv').config();
 
-// Configuração Cloudinary
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -12,53 +11,70 @@ cloudinary.v2.config({
 const artCache = new Map();
 
 async function fetchCardArt(cardName) {
-  if (!cardName) return null;
+  if (!cardName) return [];
 
+  // Cache local
   if (artCache.has(cardName)) {
     return artCache.get(cardName);
   }
 
-  // Busca na API do YGOPRODeck
+  // Busca a carta na API YGOPRO
   let cardData;
   try {
-    const res = await axios.get(`https://db.ygoprodeck.com/api/v7/cardinfo.php?name=${encodeURIComponent(cardName)}`);
-    if (!res.data || !res.data.data || res.data.data.length === 0) return null;
+    const res = await axios.get(
+      `https://db.ygoprodeck.com/api/v7/cardinfo.php?name=${encodeURIComponent(cardName)}`
+    );
+    if (!res.data || !res.data.data || res.data.data.length === 0) return [];
     cardData = res.data.data[0];
   } catch (err) {
     console.error("Erro ao buscar carta na API:", err.message);
-    return null;
+    return [];
   }
 
-  const publicId = `${cardData.name}_cropped`; 
-  const cloudURL = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/v1/yugioh_cards/${encodeURIComponent(publicId)}.jpg`;
+  const results = [];
 
-  // 4️⃣Tenta verificar se a imagem existe
-  try {
-    await cloudinary.v2.api.resource(`yugioh_cards/${publicId}`);
-  } catch (err) {
-      // qualquer erro assume que a imagem não existe
-        try {
-            const imageResponse = await axios.get(cardData.card_images[0].image_url_cropped, { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(imageResponse.data);
-            await new Promise((resolve, reject) => {
-            cloudinary.v2.uploader.upload_stream(
+  for (const [index, art] of cardData.card_images.entries()) {
+    const publicId = `${cardData.name}_art${index}_cropped`;
+    const cloudURL = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/v1/yugioh_cards/${encodeURIComponent(publicId)}.jpg`;
+
+    // Verifica se já está no Cloudinary
+    let exists = true;
+    try {
+      await cloudinary.v2.api.resource(`yugioh_cards/${publicId}`);
+    } catch (err) {
+      exists = false;
+    }
+
+    // Se não existir, faz upload
+    if (!exists) {
+      try {
+        const imageResponse = await axios.get(art.image_url_cropped, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(imageResponse.data);
+
+        await new Promise((resolve, reject) => {
+          cloudinary.v2.uploader.upload_stream(
             { folder: "yugioh_cards", public_id: publicId },
             (error, result) => (error ? reject(error) : resolve(result))
           ).end(buffer);
         });
       } catch (uploadErr) {
-        console.error("Erro ao subir imagem para Cloudinary:", uploadErr.message);
+        console.error(`Erro ao subir arte ${index} para Cloudinary:`, uploadErr.message);
+        continue;
       }
+    }
+
+    results.push(cloudURL);
   }
 
-  artCache.set(cardName, cloudURL);
-
-  return cloudURL;
+  artCache.set(cardName, results);
+  return results;
 }
+
 /*
-(async () =>{
-    const cardArt = await fetchCardArt("Polymerization");
-    console.log(cardArt);
+(async () => {
+  const arts = await fetchCardArt("Polymerization");
+  console.log(arts);
 })();
 */
-module.exports = { fetchCardArt }
+
+module.exports = { fetchCardArt };

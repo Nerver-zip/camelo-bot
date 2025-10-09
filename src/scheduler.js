@@ -66,8 +66,8 @@ async function scheduleTournamentUpdate() {
   } catch (err) {
     console.error("❌ Erro ao atualizar torneios:", err);
   } finally {
-    // Reagenda em 3h
-    setTimeout(scheduleTournamentUpdate, 3 * 60 * 60 * 1000);
+    // Reagenda em 1h
+    setTimeout(scheduleTournamentUpdate, 1 * 60 * 60 * 1000);
   }
 }
 
