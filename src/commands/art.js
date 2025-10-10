@@ -80,6 +80,7 @@ module.exports = {
 
       const createEmbed = () => {
         return new EmbedBuilder()
+          .setTitle(cardName)
           .setImage(artUrls[currentIndex])
           .setColor("#00BFFF")
           .setFooter({ text: `Arte ${currentIndex + 1}/${artUrls.length}` });
