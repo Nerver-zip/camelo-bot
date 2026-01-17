@@ -5,6 +5,7 @@ const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate } = require('./scheduler.js');
 const { DeckController } = require('./controllers/DeckController.js');
 const { NewsFeeder } = require('./automessages/NewsFeeder.js');
+const { TournamentFeeder } = require('./automessages/TournamentFeeder.js');
 
 // ========== Discord Client ==========
 const client = new Client({
@@ -57,6 +58,7 @@ const replyMap = new Map();
 client.once('clientReady', async () => { 
   console.log(`Bot online como ${client.user.tag}`);
   await NewsFeeder.init(client);
+  await TournamentFeeder.init(client);
   client.user.setPresence({
     status: 'online',
     activities: [
