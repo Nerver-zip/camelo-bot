@@ -25,10 +25,11 @@ class TournamentFeeder {
     // FILTROS E SANITIZAÇÃO
     // ------------------------------------------
     
-    // Tokens que serão REMOVIDOS do texto antes de enviar (ex: @everyone)
+    // Tokens que serão REMOVIDOS do texto antes de enviar (ex: @everyone e menções)
     static blockedTokens = [
         '@everyone',
-        '@here'
+        '@here',
+        '@'
     ];
 
     // Palavras-chave que OBRIGATORIAMENTE devem aparecer (pelo menos uma)
