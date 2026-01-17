@@ -121,7 +121,7 @@ class TournamentFeeder {
         }
         
         // Remove espaços duplos/múltiplos que sobraram e faz trim nas pontas
-        return clean.replace(/\s+/g, ' ').trim();
+        return clean.trim();
     }
 
     static async checkFeeds() {
