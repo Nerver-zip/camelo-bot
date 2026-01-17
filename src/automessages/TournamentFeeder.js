@@ -25,14 +25,13 @@ class TournamentFeeder {
     // FILTROS E SANITIZAÇÃO
     // ------------------------------------------
     
-    // Tokens que serão REMOVIDOS da mensagem antes de enviar
+    // Tokens que serão REMOVIDOS do texto antes de enviar (ex: @everyone)
     static blockedTokens = [
         '@everyone',
         '@here'
     ];
 
-    // Palavras-chave que devem aparecer
-    // A mensagem deve conter pelo menos UMA dessas para ser enviada.
+    // Palavras-chave que OBRIGATORIAMENTE devem aparecer (pelo menos uma)
     static requiredKeywords = [
          'Tournament',
          'League',
@@ -42,6 +41,11 @@ class TournamentFeeder {
          'tourney',
          'clan war',
          'challonge'
+    ];
+
+    // Palavras-chave que, se aparecerem, fazem a mensagem ser completamente ignorada 
+    static bannedWords = [
+        'tournament started',
     ];
 
     // ========================================== 
@@ -100,14 +104,18 @@ class TournamentFeeder {
         return crypto.createHash('md5').update(raw).digest('hex');
     }
 
-    // Verifica se a mensagem deve ser processada baseada nas Keywords
+    // Verifica se a mensagem deve ser processada
     static isValidMessage(msg) {
-        // Se a lista estiver vazia, aceita tudo
+        const content = (msg.content || '').toLowerCase();
+
+        // 1. Check Banned Words (Se encontrar qualquer uma, retorna false imediatamente)
+        const isBanned = this.bannedWords.some(word => content.includes(word.toLowerCase()));
+        if (isBanned) return false;
+
+        // 2. Check Required Keywords (Se a lista estiver vazia, aceita tudo)
         if (!this.requiredKeywords || this.requiredKeywords.length === 0) return true;
 
-        const content = (msg.content || '').toLowerCase();
-        
-        // Verifica se contém Pelo Menos Uma das palavras chave
+        // Verifica se contém Pelo Menos Uma das palavras chave obrigatórias
         return this.requiredKeywords.some(keyword => content.includes(keyword.toLowerCase()));
     }
 
@@ -120,7 +128,6 @@ class TournamentFeeder {
             clean = clean.split(token).join('');
         }
         
-        // Remove espaços duplos/múltiplos que sobraram e faz trim nas pontas
         return clean.trim();
     }
 
@@ -172,12 +179,11 @@ class TournamentFeeder {
             const currentHash = this.generateHash(msg);
             const isTarget = this.isValidMessage(msg);
             
-            // 1. Mensagem Nova (Não está no histórico)
+            // 1. Mensagem Nova
             if (!this.history[msgId]) {
                 if (isTarget) {
                     newMessages.push(msg);
                 } else {
-                    // Salva como "Skipped" (bot_message_id: null) para não processar de novo
                     this.history[msgId] = {
                         bot_message_id: null,
                         content_hash: currentHash,
@@ -186,14 +192,12 @@ class TournamentFeeder {
                     historyChanged = true;
                 }
             } 
-            // 2. Mensagem Já Existe (Checar edição)
+            // 2. Mensagem Já Existe
             else {
                 if (this.history[msgId].content_hash !== currentHash) {
-                    // Se o conteúdo mudou, verificamos se agora ela é válida
                     if (isTarget) {
                         editedMessages.push(msg);
                     } else {
-                        // Se editou mas continua inválida (ou ficou inválida), só atualiza o hash
                         this.history[msgId].content_hash = currentHash;
                         this.history[msgId].timestamp = Date.now();
                         historyChanged = true;
@@ -267,15 +271,11 @@ class TournamentFeeder {
 
     static buildPayload(msg) {
         let content = this.sanitizeContent(msg.content || '');
-        
         if (msg.attachments && msg.attachments.length > 0) {
             content += '\n' + msg.attachments.join('\n');
         }
-        
         if (!content.trim()) content = '📁 *(Mídia/Arquivo sem texto)*';
-        
         if (content.length > 2000) content = content.substring(0, 1990) + '...';
-        
         return { content: content };
     }
 }
