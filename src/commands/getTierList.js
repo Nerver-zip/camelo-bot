@@ -32,6 +32,9 @@ module.exports = {
       console.error("Erro ao buscar tier list:", error);
       return interaction.editReply({ content: "❌ Não foi possível buscar a tier list no momento." });
     }
+    
+    if (!tierList || Object.keys(tierList).length === 0) {
+            return interaction.editReply({ content: "⚠️ A Tier List retornada está vazia." });} 
 
     const categoryNames = {
       0: "Tier 0 decks",

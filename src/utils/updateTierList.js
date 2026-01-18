@@ -5,20 +5,24 @@ const { fetchTierList } = require("./fetchTierList.js");
  * Atualiza e organiza os canais da Tier List em um servidor específico.
  * @param {import('discord.js').Guild} guild - O objeto Guild do Discord.
  */
-async function updateTierList(guild) {
+async function updateTierList(guild, passedTierList) {
     if (!guild) {
         console.error("[updateTierList] Guild não fornecida.");
         return;
     }
 
-    // Verifica permissão do bot (apenas loga aviso se falhar, já que é task agendada)
-    // Note: Em contexto de scheduler, assume-se que o bot deve ter permissão se estiver configurado.
+    let tierList = passedTierList;
+    if (!tierList) {
+        try {
+            tierList = await fetchTierList();
+        } catch (error) {
+            console.error("[updateTierList] Erro ao buscar tier list:", error);
+            return;
+        }
+    }
 
-    let tierList;
-    try {
-        tierList = await fetchTierList();
-    } catch (error) {
-        console.error("[updateTierList] Erro ao buscar tier list:", error);
+    if (!tierList || Object.keys(tierList).length === 0) {
+        console.warn("[updateTierList] Tier List vazia ou inválida. Abortando atualização.");
         return;
     }
 
