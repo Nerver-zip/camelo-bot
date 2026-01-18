@@ -33,8 +33,6 @@ const client = new Client({
 
     await scheduleChartUpdate();
     
-    await scheduleTierListUpdate(client); 
-
     // Coleção de comandos
     client.commands = new Collection();
     const commandsPath = path.join(__dirname, 'commands');
@@ -61,6 +59,8 @@ client.once('clientReady', async () => {
   console.log(`Bot online como ${client.user.tag}`);
   await NewsFeeder.init(client);
   await TournamentFeeder.init(client);
+  await scheduleTierListUpdate(client); 
+  
   client.user.setPresence({
     status: 'online',
     activities: [

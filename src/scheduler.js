@@ -99,10 +99,16 @@ async function scheduleTierListUpdate(client) {
             console.warn("⚠️ GUILD_ID não configurado. Pule a atualização da Tier List.");
         } else {
              for (const guildId of guildIds) {
-                const guild = await client.guilds.fetch(guildId).catch(err => {
-                    console.error(`Falha ao buscar guilda ${guildId}:`, err.message);
-                    return null;
-                });
+                let guild = client.guilds.cache.get(guildId);
+                
+                if (!guild) {
+                    try {
+                        guild = await client.guilds.fetch(guildId);
+                    } catch (err) {
+                        console.error(`Falha ao buscar guilda ${guildId}:`, err.message);
+                        continue;
+                    }
+                }
                 
                 if (guild) {
                     await updateTierList(guild);
