@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { MessageFlags } = require('discord.js');
 
 class NewsFeeder {
     // ==========================================
@@ -153,7 +154,10 @@ class NewsFeeder {
             const ruler = `~~-----------------------------------------------~~`;
 
             try {
-                await channel.send({ content: headerContent });
+                await channel.send({ 
+                    content: headerContent,
+                    flags: [MessageFlags.SuppressEmbeds]
+                });
                 await new Promise(r => setTimeout(r, 500)); 
                 await channel.send({ content: ruler });
                 
