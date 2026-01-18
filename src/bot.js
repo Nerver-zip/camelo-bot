@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate } = require('./scheduler.js');
+const { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate, scheduleTierListUpdate } = require('./scheduler.js');
 const { DeckController } = require('./controllers/DeckController.js');
 const { NewsFeeder } = require('./automessages/NewsFeeder.js');
 const { TournamentFeeder } = require('./automessages/TournamentFeeder.js');
@@ -33,6 +33,8 @@ const client = new Client({
 
     await scheduleChartUpdate();
     
+    await scheduleTierListUpdate(client); 
+
     // Coleção de comandos
     client.commands = new Collection();
     const commandsPath = path.join(__dirname, 'commands');

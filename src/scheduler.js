@@ -8,6 +8,7 @@ const { initServers } = require('./utils/auto-suggestions/suggestionServers.js')
 const { getUpcomingTournamentsTonamel } = require('./utils/scrapers/tonamel.js');
 const { getUpcomingTournamentsStartgg } = require('./utils/scrapers/startgg.js');
 const { Matcher } = require('./utils/fuzzyfind/Matcher.js');
+const { updateTierList } = require('./utils/updateTierList.js');
 
 async function scheduleChartUpdate() {
   try {
@@ -81,9 +82,46 @@ function scheduleMatcherUpdate(){
         setTimeout(scheduleMatcherUpdate, 12 * 60 * 60 * 1000);
     }
 }
+
+async function scheduleTierListUpdate(client) {
+    if (!client) {
+        console.error("❌ scheduleTierListUpdate chamado sem client.");
+        return;
+    }
+
+    try {
+        console.log("🔄 Iniciando atualização automática da Tier List...");
+        
+        // Pega IDs do env, suporta múltiplos com ;
+        const guildIds = (process.env.GUILD_ID || "").split(';').map(id => id.trim()).filter(id => id.length > 0);
+        
+        if (guildIds.length === 0) {
+            console.warn("⚠️ GUILD_ID não configurado. Pule a atualização da Tier List.");
+        } else {
+             for (const guildId of guildIds) {
+                const guild = await client.guilds.fetch(guildId).catch(err => {
+                    console.error(`Falha ao buscar guilda ${guildId}:`, err.message);
+                    return null;
+                });
+                
+                if (guild) {
+                    await updateTierList(guild);
+                }
+             }
+        }
+        console.log("✅ Atualização automática da Tier List concluída.");
+
+    } catch (err) {
+        console.error("❌ Erro na atualização da Tier List:", err);
+    } finally {
+        // Reagenda em 3h
+        setTimeout(() => scheduleTierListUpdate(client), 3 * 60 * 60 * 1000);
+    }
+}
+
 /*
 (async () => {
     scheduleTournamentUpdate();
 })();
 */
-module.exports = { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate };
+module.exports = { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate, scheduleMatcherUpdate, scheduleTierListUpdate };

@@ -144,6 +144,38 @@ module.exports = {
       // Não toca em decks que não estavam antes e não estão agora na tier list
     }
 
+    // Organiza alfabeticamente as categorias de Tier
+    const categoriesToSort = [
+      categoryNames[0],
+      categoryNames[1],
+      categoryNames[2],
+      categoryNames[3],
+      categoryNames[90]
+    ];
+
+    for (const catName of categoriesToSort) {
+      if (!catName) continue;
+      const category = categories[catName];
+      if (!category) continue;
+
+      try {
+        // Recarrega a categoria para garantir que os canais movidos estejam listados
+        const freshCategory = await interaction.guild.channels.fetch(category.id);
+        const channels = freshCategory.children.cache.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (channels.size > 0) {
+          const basePos = Math.min(...channels.map(ch => ch.position));
+          let i = 0;
+          for (const [, channel] of channels) {
+            await channel.setPosition(basePos + i);
+            i++;
+          }
+        }
+      } catch (err) {
+        console.error(`Erro ao organizar categoria ${catName}:`, err);
+      }
+    }
+
     if (movedChannels.length === 0) {
       return interaction.editReply({ content: "Todos os canais já estão nas categorias corretas." });
     } else {
