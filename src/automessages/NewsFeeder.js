@@ -12,9 +12,9 @@ class NewsFeeder {
     // Intervalo de checagem
     static checkInterval = 60 * 1000; // 15 minutos
     
-    // Intervalo mínimo para mandar um Header novo (12 horas)
+    // Intervalo mínimo para mandar um Header novo (24 horas)
     // Se chegar mensagem antes, manda sem header nenhum.
-    static headerCooldown = 12 * 60 * 60 * 1000; 
+    static headerCooldown = 24 * 60 * 60 * 1000; 
 
     static sourceName = "Duel Links Official";
     static sourceLink = "https://discord.com/invite/duellinks";
@@ -156,7 +156,7 @@ class NewsFeeder {
             try {
                 await channel.send({ 
                     content: headerContent,
-                    flags: [MessageFlags.SuppressEmbeds]
+                    flags: MessageFlags.SuppressEmbeds
                 });
                 await new Promise(r => setTimeout(r, 500)); 
                 await channel.send({ content: ruler });
