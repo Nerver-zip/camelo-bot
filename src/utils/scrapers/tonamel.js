@@ -130,9 +130,26 @@ async function getUpcomingTournamentsTonamel(opts = {}) {
   const url = `${BASE}/competitions?game=${encodeURIComponent(game)}&region=${encodeURIComponent(region)}`;
 
   const browser = await puppeteer.launch({
-    headless,
-    executablePath: chromePath,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      headless: 'new',
+      executablePath: process.env.CHROME_PATH,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+
+        '--no-zygote',
+        '--single-process',
+
+        '--disable-crash-reporter',
+        '--disable-breakpad',
+        '--disable-features=Crashpad',
+
+        '--disable-features=UseOzonePlatform',
+        '--disable-background-networking'
+      ],
   });
 
   const page = await browser.newPage();

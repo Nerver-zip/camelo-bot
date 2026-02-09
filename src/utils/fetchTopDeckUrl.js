@@ -16,10 +16,28 @@ async function fetchTopDeckUrl(name) {
   const formattedName = formatDeckName(name);
 
   const browser = await puppeteer.launch({
-    headless: 'new',
-    executablePath: process.env.CHROME_PATH,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+      headless: 'new',
+      executablePath: process.env.CHROME_PATH,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+
+        '--no-zygote',
+        '--single-process',
+
+        '--disable-crash-reporter',
+        '--disable-breakpad',
+        '--disable-features=Crashpad',
+
+        '--disable-features=UseOzonePlatform',
+        '--disable-background-networking'
+      ],
   });
+  
   const page = await browser.newPage();
 
   await page.setViewport({ width: 800, height: 600 });

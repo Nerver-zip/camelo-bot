@@ -8,11 +8,28 @@ async function fetchMetaStats() {
   const url = 'https://www.duellinksmeta.com/top-decks#tournamentsOnly';
 
   console.log('🚀 Iniciando Puppeteer...');
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.CHROME_PATH,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      executablePath: process.env.CHROME_PATH,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+
+        '--no-zygote',
+        '--single-process',
+
+        '--disable-crash-reporter',
+        '--disable-breakpad',
+        '--disable-features=Crashpad',
+
+        '--disable-features=UseOzonePlatform',
+        '--disable-background-networking'
+      ],
+    });
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
