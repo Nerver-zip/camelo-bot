@@ -63,7 +63,7 @@ async function updateTierList(guild, passedTierList) {
         return name
             .toLowerCase()
             .replace(/s$/, '')
-            .replace(/[-\s]/g, '');
+            .replace(/[^a-z0-9]/g, '');
     }
 
     const allDeckChannels = [];
