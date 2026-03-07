@@ -16,6 +16,17 @@ class NewsFeeder {
     // Se chegar mensagem antes, manda sem header nenhum.
     static headerCooldown = 24 * 60 * 60 * 1000; 
 
+    // ------------------------------------------
+    // FILTROS E SANITIZAÇÃO
+    // ------------------------------------------
+    
+    // Tokens que serão REMOVIDOS do texto antes de enviar (ex: @everyone e menções)
+    static blockedTokens = [
+        '@everyone',
+        '@here',
+        '@'
+    ];
+
     static sourceName = "Duel Links Official";
     static sourceLink = "https://discord.com/invite/duellinks";
 
@@ -83,6 +94,21 @@ class NewsFeeder {
         const attachments = JSON.stringify(msg.attachments || []);
         const raw = content + attachments;
         return crypto.createHash('md5').update(raw).digest('hex');
+    }
+
+    // Remove tokens proibidos para o envio
+    static sanitizeContent(content) {
+        if (!content) return '';
+        let clean = content;
+        
+        for (const token of this.blockedTokens) {
+            clean = clean.split(token).join('');
+        }
+        
+        // Remove menções específicas a usuários/cargos (<@id>, <@!id>, <@&id>)
+        clean = clean.replace(/<@[!&]?\d+>/g, '');
+        
+        return clean.trim();
     }
 
     static async checkFeed() {
@@ -209,7 +235,7 @@ class NewsFeeder {
     }
 
     static buildPayload(msg) {
-        let content = msg.content || '';
+        let content = this.sanitizeContent(msg.content || '');
         if (msg.attachments && msg.attachments.length > 0) {
             content += '\n' + msg.attachments.join('\n');
         }

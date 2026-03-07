@@ -129,6 +129,9 @@ class TournamentFeeder {
             clean = clean.split(token).join('');
         }
         
+        // Remove menções específicas a usuários/cargos (<@id>, <@!id>, <@&id>)
+        clean = clean.replace(/<@[!&]?\d+>/g, '');
+        
         return clean.trim();
     }
 
