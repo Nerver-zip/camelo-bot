@@ -71,8 +71,8 @@ module.exports = {
     function normalizeName(name) {
       return name
         .toLowerCase()
-        .replace(/s$/, '')
-        .replace(/[^a-z0-9]/g, '');
+        .replace(/[^a-z0-9]/g, '')
+        .replace(/s$/, '');
     }
 
     const allDeckChannels = [];
