@@ -14,8 +14,11 @@ local/
 bin/
 TODO.txt
 test.js
-test/
 mirrors/
+
+# Tests: ignore everything in src/test except automated tests
+src/test/*
+!src/test/**/*.test.js
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
