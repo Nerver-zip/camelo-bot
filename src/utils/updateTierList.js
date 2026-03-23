@@ -44,7 +44,13 @@ async function updateTierList(guild, passedTierList) {
         "Outros decks",
         "Outros decks 2",
         "Outros decks 3",
-        "Outros decks 4"
+        "Outros decks 4",
+        "Outros decks 5",
+        "Outros decks 6",
+        "Outros decks 7",
+        "Outros decks 8",
+        "Outros decks 9",
+        "Outros decks 10"
     ];
 
     const categories = {};
