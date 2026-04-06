@@ -165,23 +165,23 @@ class DeckController {
    * Atualiza os dados manualmente, lendo os XMLs remotos e atualizando o Map.
    *
    * Nova revisão:
-   * - Usa última URL salva (hash posicional) como ponto de referência.
-   * - Itera o XML do mais recente para o mais antigo.
-   * - Para ao encontrar a URL anterior.
-   * - Salva nova última URL global no disco junto com o cache.
-   * - Log reduzido: exibe apenas o total de novos decks adicionados.
+   * - Identifica os XMLs que contêm atualizações.
+   * - Processa do XML mais antigo para o mais recente entre os que têm novidades.
+   * - Em cada XML, processa apenas os itens após o lastUrl.
+   * - Garante ordem newest-first no Map final usando unshift.
    */
   static async forceUpdate() {
     this.log('[DeckController] Iniciando atualização de dados...');
 
     try {
       let totalAdded = 0;
-
+      
+      // Carrega os dados de todos os XMLs primeiro
+      const allXmlDecks = [];
       for (let i = 0; i < this.xmlUrls.length; i++) {
         const url = this.xmlUrls[i];
         let data;
 
-        // XML 0 cacheado localmente
         if (i === 0 && fs.existsSync(this.xml0CachePath)) {
           this.log(`[DeckController] Usando cache local para XML 0: ${this.xml0CachePath}`);
           data = fs.readFileSync(this.xml0CachePath, 'utf8');
@@ -189,36 +189,63 @@ class DeckController {
           this.log(`[DeckController] Baixando dump XML: ${url}`);
           const response = await axios.get(url, { responseType: 'text' });
           data = response.data;
-
           if (i === 0) {
             try {
               fs.writeFileSync(this.xml0CachePath, data, 'utf8');
               this.log(`[DeckController] XML 0 salvo no cache local: ${this.xml0CachePath}`);
             } catch (e) {
-              console.warn('[DeckController] Falha ao salvar xml0 cache local:', e.message || e);
+              this.log(`[WARNING] Falha ao salvar cache XML 0: ${e.message}`);
             }
           }
         }
 
         const decks = this.parseXml(data);
-        if (!decks || decks.length === 0) continue;
+        allXmlDecks.push(decks);
+      }
 
-        // === NOVO: salva última URL REAL do XML (último item da lista) ===
-        const lastUrlFromXML = this.normalizeUrl(decks[decks.length - 1].link);
+      // Encontra onde paramos (lastUrl)
+      let foundLastUrlXmlIndex = -1;
+      let foundLastUrlItemIndex = -1;
 
-        let foundOldUrl = false;
-
-        // Itera do mais recente para o mais antigo
-        for (let k = 0; k < decks.length; k++) {
-          const { archetype, link } = decks[k];
-          const normLink = this.normalizeUrl(link);
-
-          if (this.lastUrl && normLink === this.lastUrl) {
-            foundOldUrl = true;
-            this.log(`[DeckController] Última URL anterior encontrada (${this.lastUrl}). Parando atualização incremental.`);
+      if (this.lastUrl) {
+        for (let i = 0; i < allXmlDecks.length; i++) {
+          const idx = allXmlDecks[i].findIndex(d => this.normalizeUrl(d.link) === this.lastUrl);
+          if (idx !== -1) {
+            foundLastUrlXmlIndex = i;
+            foundLastUrlItemIndex = idx;
             break;
           }
+        }
+      }
 
+      // Se encontramos, processamos apenas o que veio DEPOIS
+      // Ordem de processamento para manter newest-first:
+      // 1. Processamos do item foundLastUrlItemIndex + 1 até o fim do XML foundLastUrlXmlIndex
+      // 2. Processamos todos os XMLs anteriores (i < foundLastUrlXmlIndex) inteiros
+      // Nota: xmlUrls[0] é o MAIS RECENTE. Então processamos de i = N até 0.
+      
+      const xmlsToProcess = [];
+      if (foundLastUrlXmlIndex !== -1) {
+        this.log(`[DeckController] Última URL encontrada no XML ${foundLastUrlXmlIndex} na posição ${foundLastUrlItemIndex}.`);
+        // Adiciona itens novos do XML onde a URL foi encontrada
+        xmlsToProcess.push(allXmlDecks[foundLastUrlXmlIndex].slice(foundLastUrlItemIndex + 1));
+        // Adiciona XMLs mais recentes que o atual
+        for (let i = foundLastUrlXmlIndex - 1; i >= 0; i--) {
+          xmlsToProcess.push(allXmlDecks[i]);
+        }
+      } else {
+        this.log('[DeckController] Última URL não encontrada ou cache vazio. Processando todos os dados.');
+        // Processa do XML mais antigo para o mais novo
+        for (let i = allXmlDecks.length - 1; i >= 0; i--) {
+          xmlsToProcess.push(allXmlDecks[i]);
+        }
+      }
+
+      // Processa cada deck coletado (na ordem do mais antigo para o mais novo)
+      for (const deckList of xmlsToProcess) {
+        for (const deck of deckList) {
+          const { archetype, link } = deck;
+          const normLink = this.normalizeUrl(link);
           const lower = archetype.toLowerCase();
           const arr = this.deckMap.get(lower) || [];
 
@@ -229,20 +256,18 @@ class DeckController {
             totalAdded++;
           }
         }
+      }
 
-        // === Atualiza marcador global com a última URL real do XML ===
-        if (!this.lastUrl || lastUrlFromXML !== this.lastUrl) {
-          this.lastUrl = lastUrlFromXML;
-          this.log(`[DeckController] Atualizado lastUrl global para ${this.lastUrl}`);
+      // Atualiza lastUrl com o deck mais recente de todos (último item do XML 0)
+      if (allXmlDecks[0] && allXmlDecks[0].length > 0) {
+        const absoluteNewest = this.normalizeUrl(allXmlDecks[0][allXmlDecks[0].length - 1].link);
+        if (this.lastUrl !== absoluteNewest) {
+          this.lastUrl = absoluteNewest;
+          fs.writeFileSync(this.lastUrlPath, this.lastUrl, 'utf8');
         }
-
-        if (foundOldUrl) break;
       }
 
       this.saveCache();
-      fs.writeFileSync(this.lastUrlPath, this.lastUrl, 'utf8');
-      this.log(`[DeckController] lastUrl global salvo em disco: ${this.lastUrlPath}`);
-
       this.log(`[DeckController] Atualização completa. Novos decks adicionados: ${totalAdded}`);
 
     } catch (err) {
