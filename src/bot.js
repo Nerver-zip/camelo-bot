@@ -55,7 +55,7 @@ const client = new Client({
 const replyMap = new Map();
 
 // ========== Discord Events ==========
-client.once('ready', async () => { 
+client.once('clientReady', async () => { 
   console.log(`Bot online como ${client.user.tag}`);
   await NewsFeeder.init(client);
   await TournamentFeeder.init(client);
