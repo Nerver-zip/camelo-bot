@@ -158,8 +158,9 @@ Novas funcionalidades estão sendo adicionadas com foco em estabilidade, perform
 
 ## 🐳 Docker
 
-O Compose deste repositório executa somente o `camelo-bot`. Ele não depende de
-outro projeto, serviço externo local ou volume compartilhado para iniciar.
+O Compose deste repositório executa somente o `camelo-bot`. Os dados JSON de
+entrada ficam no volume Docker externo `channel-output`, que deve existir antes
+do primeiro start.
 
 ### Setup a partir de um clone
 
@@ -193,9 +194,9 @@ como usuário sem privilégios. Não há portas públicas configuradas.
 
 ### Persistência
 
-O Compose cria volumes nomeados independentes para:
+O Compose usa volumes nomeados para:
 
-- `camelo-dump`: arquivos locais consumidos pelo bot;
+- `channel-output`: diretório persistente de JSONs consumidos pelo bot;
 - `camelo-charts`: gráficos e dados auxiliares;
 - `camelo-history`: históricos e mirrors.
 

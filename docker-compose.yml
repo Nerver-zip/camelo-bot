@@ -12,13 +12,14 @@ services:
       CHROME_PATH: /usr/bin/chromium
     restart: unless-stopped
     volumes:
-      - camelo-dump:/app/src/local/dump
+      - bot-output:/app/src/local/dump
       - camelo-charts:/app/src/local/charts
       - camelo-history:/app/src/automessages/mirrors
 
 volumes:
-  camelo-dump:
-    name: camelo-dump
+  bot-output:
+    external: true
+    name: channel-output
   camelo-charts:
     name: camelo-charts
   camelo-history:
