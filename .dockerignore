@@ -1,0 +1,12 @@
+.env
+.env.*
+node_modules/
+src/local/dump/
+src/local/charts/
+src/automessages/mirrors/
+src/utils/auto-suggestions/bin/
+coverage/
+*.log
+*.db
+.git/
+.github/

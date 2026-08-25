@@ -6,6 +6,7 @@ const { scheduleChartUpdate, scheduleLocalFilesUpdate, scheduleTournamentUpdate,
 const { DeckController } = require('./controllers/DeckController.js');
 const { NewsFeeder } = require('./automessages/NewsFeeder.js');
 const { TournamentFeeder } = require('./automessages/TournamentFeeder.js');
+const { stopServers } = require('./utils/auto-suggestions/suggestionServers.js');
 
 // ========== Discord Client ==========
 const client = new Client({
@@ -109,3 +110,16 @@ client.on('messageDelete', async deletedMessage => {
     }
   }
 });
+
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[INFO] Recebido ${signal}; encerrando o bot.`);
+  stopServers();
+  await client.destroy();
+  process.exit(0);
+}
+
+process.once('SIGINT', () => void shutdown('SIGINT'));
+process.once('SIGTERM', () => void shutdown('SIGTERM'));

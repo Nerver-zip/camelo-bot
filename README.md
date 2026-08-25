@@ -155,3 +155,59 @@ Novas funcionalidades estão sendo adicionadas com foco em estabilidade, perform
      ```bash
      node src/bot.js
      ```
+
+## 🐳 Docker
+
+O Compose deste repositório executa somente o `camelo-bot`. Ele não depende de
+outro projeto, serviço externo local ou volume compartilhado para iniciar.
+
+### Setup a partir de um clone
+
+```bash
+git clone https://github.com/Nerver-zip/camelo-bot.git
+cd camelo-bot
+cp .env.example .env
+chmod 600 .env
+```
+
+Preencha `.env` com as credenciais do bot e das APIs. O arquivo real `.env` é
+local e não deve ser commitado.
+
+Valide e construa a imagem:
+
+```bash
+docker compose config --quiet
+docker compose build
+```
+
+Inicie o serviço quando estiver pronto:
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs -f camelo-bot
+```
+
+O container compila os servidores C++ durante o build, inclui Chromium e roda
+como usuário sem privilégios. Não há portas públicas configuradas.
+
+### Persistência
+
+O Compose cria volumes nomeados independentes para:
+
+- `camelo-dump`: arquivos locais consumidos pelo bot;
+- `camelo-charts`: gráficos e dados auxiliares;
+- `camelo-history`: históricos e mirrors.
+
+Não use `docker compose down -v` em produção, pois isso remove esses dados.
+
+### Atualização e rollback
+
+```bash
+git pull --ff-only
+docker compose build camelo-bot
+docker compose up -d camelo-bot
+```
+
+Para rollback, selecione um commit anterior conhecido, reconstrua a imagem e
+suba novamente o serviço. Mantenha os volumes nomeados durante o rollback.

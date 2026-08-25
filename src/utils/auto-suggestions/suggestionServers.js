@@ -61,7 +61,16 @@ async function initServers(kill = true) {
   console.log("Todos os servidores foram iniciados/reiniciados com sucesso!");
   return servers;
 }
-module.exports = { initServers };
+function stopServers() {
+  for (const proc of servers) {
+    if (proc && typeof proc.kill === 'function' && !proc.killed) {
+      proc.kill('SIGTERM');
+    }
+  }
+  servers = [];
+}
+
+module.exports = { initServers, stopServers };
 
 /*(async () => {
   const [cardServer, skillServer, archetypeServer] = await Promise.all([

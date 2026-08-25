@@ -1,6 +1,6 @@
 # Compilador e flags
 CXX := g++
-CXXFLAGS := -std=c++23 -Wall -Wextra -O2 -march=native
+CXXFLAGS ?= -std=c++23 -Wall -Wextra -O2
 
 # Cores para terminal
 GREEN := \033[0;32m
