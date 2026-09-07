@@ -202,6 +202,42 @@ O Compose usa volumes nomeados para:
 
 Não use `docker compose down -v` em produção, pois isso remove esses dados.
 
+### Memória e scrapers
+
+Cada coleta fecha seu Chromium em `finally`, inclusive quando a criação ou
+configuração da página falha. Se o fechamento falhar ou exceder 5 segundos,
+o processo daquele navegador é encerrado à força. Não é necessário fechar
+páginas separadamente: `Browser.close()` fecha todas elas
+([documentação do Puppeteer](https://pptr.dev/api/puppeteer.browser.close)).
+A rolagem do Tonamel tem limite de 100 passos por passagem para evitar que
+uma página que cresce continuamente prenda a coleta. A extração do meta
+bloqueia imagens e mídia, além de fontes e CSS.
+
+Os caches de cartas e artes mantêm até 500 entradas cada, descartando as menos
+recentemente usadas. Respostas de slash commands não ficam guardadas em um
+mapa permanente: IDs de interações não correspondem a IDs de mensagens deletadas.
+
+Para acompanhar o consumo e a idade dos processos do container em execução:
+
+```bash
+docker stats --no-stream camelo-bot-camelo-bot-1
+docker top camelo-bot-camelo-bot-1 -eo pid,ppid,rss,etime,comm
+```
+
+Chromium deve existir apenas durante coletas. Processos com vários dias de
+vida indicam retenção; compare períodos ociosos equivalentes após atualizar.
+RSS dos processos compartilha páginas e não deve ser somado como memória
+exclusiva do container. A estabilização ao longo de dias exige acompanhamento
+após a implantação; os testes locais não demonstram essa estabilidade.
+
+Execute `npm test` para validar caches limitados e encerramento em falhas.
+Para repetir a verificação com Chromium real, sem credenciais ou rede:
+
+```bash
+docker build -t camelo-bot:memory-check .
+docker run --rm --network none camelo-bot:memory-check node scripts/check-browser-memory.js
+```
+
 ### Atualização e rollback
 
 ```bash

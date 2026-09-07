@@ -1,6 +1,7 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const { closeBrowser } = require('../closeBrowser');
 
 puppeteer.use(StealthPlugin());
 
@@ -14,12 +15,13 @@ async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
       let total = 0;
+      let steps = 0;
       const distance = 200;
       const timer = setInterval(() => {
         const scrollHeight = document.body.scrollHeight;
         window.scrollBy(0, distance);
         total += distance;
-        if (total >= scrollHeight - window.innerHeight) {
+        if (++steps >= 100 || total >= scrollHeight - window.innerHeight) {
           clearInterval(timer);
           setTimeout(resolve, 700);
         }
@@ -152,11 +154,11 @@ async function getUpcomingTournamentsTonamel(opts = {}) {
       ],
   });
 
-  const page = await browser.newPage();
-  await page.setUserAgent(process.env.USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36');
-  await page.setViewport({ width: 1280, height: 800 });
-
   try {
+    const page = await browser.newPage();
+    await page.setUserAgent(process.env.USER_AGENT || 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 800 });
+
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
     await autoScroll(page);
     await clickLoadMoreIfExists(page, process.env.LOAD_MORE_SELECTOR || 'button.load-more, .load-more', maxLoadMoreClicks);
@@ -170,8 +172,7 @@ async function getUpcomingTournamentsTonamel(opts = {}) {
     const data = await extractFromPage(page);
     return data;
   } finally {
-    await page.close();
-    await browser.close();
+    await closeBrowser(browser);
   }
 }
 

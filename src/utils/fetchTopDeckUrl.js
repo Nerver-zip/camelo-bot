@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer-core');
+const { closeBrowser } = require('./closeBrowser');
 
 require('dotenv').config();
 
@@ -38,41 +39,44 @@ async function fetchTopDeckUrl(name) {
       ],
   });
   
-  const page = await browser.newPage();
+  try {
+    const page = await browser.newPage();
 
-  await page.setViewport({ width: 800, height: 600 });
-  await page.setRequestInterception(true);
+    await page.setViewport({ width: 800, height: 600 });
+    await page.setRequestInterception(true);
 
-  page.on('request', (req) => {
-    const block = ['image', 'stylesheet', 'font'];
-    if (block.includes(req.resourceType())) {
-      req.abort();
-    } else {
-      req.continue();
-    }
-  });
-
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
-
-  await page.waitForSelector('a[href^="/top-decks/"]', { timeout: 15000 });
-
-  const deckLink = await page.evaluate((formattedName) => {
-    const anchors = Array.from(document.querySelectorAll('a[href^="/top-decks/"]'));
-    for (const a of anchors) {
-      const href = a.getAttribute('href');
-      if (
-        href.startsWith('/top-decks/') &&
-        href.split('/').length > 6 &&
-        href.includes(`/${formattedName}/`)
-      ) {
-        return href;
+    page.on('request', (req) => {
+      const block = ['image', 'stylesheet', 'font'];
+      if (block.includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
       }
-    }
-    return null;
-  }, formattedName);
+    });
 
-  await browser.close();
-  return deckLink ? baseUrl + deckLink : null;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+
+    await page.waitForSelector('a[href^="/top-decks/"]', { timeout: 15000 });
+
+    const deckLink = await page.evaluate((formattedName) => {
+      const anchors = Array.from(document.querySelectorAll('a[href^="/top-decks/"]'));
+      for (const a of anchors) {
+        const href = a.getAttribute('href');
+        if (
+          href.startsWith('/top-decks/') &&
+          href.split('/').length > 6 &&
+          href.includes(`/${formattedName}/`)
+        ) {
+          return href;
+        }
+      }
+      return null;
+    }, formattedName);
+
+    return deckLink ? baseUrl + deckLink : null;
+  } finally {
+    await closeBrowser(browser);
+  }
 }
 
 //(async () => {

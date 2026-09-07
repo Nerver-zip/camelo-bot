@@ -1,6 +1,7 @@
 require('dotenv').config();
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const { closeBrowser } = require('./closeBrowser');
 
 puppeteer.use(StealthPlugin());
 
@@ -31,21 +32,21 @@ async function fetchMetaStats() {
       ],
     });
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 800 });
-
-  // Intercepta requests desnecessários (CSS, fontes)
-  await page.setRequestInterception(true);
-  page.on('request', (req) => {
-    const resourceType = req.resourceType();
-    if (resourceType === 'stylesheet' || resourceType === 'font') {
-      req.abort();
-    } else {
-      req.continue();
-    }
-  });
-
   try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
+
+    // A extração usa somente texto; não precisa carregar imagens ou mídia.
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['stylesheet', 'font', 'image', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     console.log('⏳ Carregando página:', url);
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(res => setTimeout(res, 4000)); // espera extra para carregar o meta
@@ -77,7 +78,7 @@ async function fetchMetaStats() {
     console.error('❌ Erro ao buscar top meta decks:', error.message);
     return [];
   } finally {
-    await browser.close();
+    await closeBrowser(browser);
     console.log('🧹 Browser fechado.');
   }
 }

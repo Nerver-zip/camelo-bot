@@ -52,9 +52,6 @@ const client = new Client({
     await client.login(process.env.TOKEN);
 })();
 
-// Map para rastrear respostas do bot
-const replyMap = new Map();
-
 // ========== Discord Events ==========
 client.once('clientReady', async () => { 
   console.log(`Bot online como ${client.user.tag}`);
@@ -86,8 +83,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isChatInputCommand()) {
-      const response = await command.execute(interaction);
-      if (response?.id) replyMap.set(interaction.id, response);
+      await command.execute(interaction);
     }
   } catch (error) {
     console.error(error);
@@ -95,18 +91,6 @@ client.on('interactionCreate', async interaction => {
       await interaction.followUp({ content: '❌ Ocorreu um erro.', ephemeral : true });
     } else {
       await interaction.reply({ content: '❌ Ocorreu um erro.', ephemeral : true });
-    }
-  }
-});
-
-client.on('messageDelete', async deletedMessage => {
-  const reply = replyMap.get(deletedMessage.id);
-  if (reply) {
-    try {
-      await reply.delete();
-      replyMap.delete(deletedMessage.id);
-    } catch (err) {
-      console.error('Erro ao deletar resposta do bot:', err.message);
     }
   }
 });

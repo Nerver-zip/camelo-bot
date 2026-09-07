@@ -9,7 +9,8 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const cardCache = new Map();
+const { BoundedCache } = require('./BoundedCache');
+const cardCache = new BoundedCache();
 
 async function fetchCardData(cardName) {
   if (!cardName) return null;
