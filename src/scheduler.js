@@ -39,11 +39,21 @@ async function scheduleTournamentUpdate() {
   try {
     console.log("🔄 Atualizando torneios...");
 
-    // Pega torneios Tonamel e Start.gg
-    const [tonamel, startgg] = await Promise.all([
+    // Pega torneios Tonamel e Start.gg isoladamente para que falha em um não anule o outro
+    const [tonamelRes, startggRes] = await Promise.allSettled([
       getUpcomingTournamentsTonamel(),
       getUpcomingTournamentsStartgg(936, 50) // 936 = Yu-Gi-Oh Duel Links ID
     ]);
+
+    const tonamel = tonamelRes.status === 'fulfilled' && Array.isArray(tonamelRes.value) ? tonamelRes.value : [];
+    const startgg = startggRes.status === 'fulfilled' && Array.isArray(startggRes.value) ? startggRes.value : [];
+
+    if (tonamelRes.status === 'rejected') {
+      console.error("❌ Erro ao buscar torneios Tonamel:", tonamelRes.reason?.message || tonamelRes.reason);
+    }
+    if (startggRes.status === 'rejected') {
+      console.error("❌ Erro ao buscar torneios Start.gg:", startggRes.reason?.message || startggRes.reason);
+    }
 
     const allTournaments = [...tonamel, ...startgg];
 
@@ -63,7 +73,7 @@ async function scheduleTournamentUpdate() {
 
     fs.writeFileSync(filePath, JSON.stringify(filtered, null, 2), "utf8");
 
-    console.log(`✅ Torneios atualizados. Total: ${filtered.length}. Salvos em ${filePath}`);
+    console.log(`✅ Torneios atualizados. Total: ${filtered.length} (Tonamel: ${tonamel.length}, Start.gg: ${startgg.length}). Salvos em ${filePath}`);
   } catch (err) {
     console.error("❌ Erro ao atualizar torneios:", err);
   } finally {
