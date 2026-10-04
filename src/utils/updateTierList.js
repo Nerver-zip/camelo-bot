@@ -6,15 +6,59 @@ const {
 const { fetchTierList } = require("./fetchTierList.js");
 
 /**
+ * Normaliza nomes para comparar canais com os nomes da tier list.
+ *
+ * Exemplo:
+ * "Stardust / Synchron" -> "stardustsynchron"
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function normalizeName(name) {
+    return String(name)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .replace(/s$/, "");
+}
+
+/**
+ * Formata o nome de um deck para um nome de canal de texto válido no Discord.
+ *
+ * Exemplo:
+ * "Battle Chronicle" -> "battle-chronicle"
+ * "Stardust / Synchron" -> "stardust-synchron"
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function formatChannelName(name) {
+    const formatted = String(name)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 100);
+
+    return formatted || "novo-deck";
+}
+
+/**
  * Atualiza e organiza os canais da Tier List em um servidor específico.
+ * Se um deck que aparece na tier list não existir no servidor, cria o canal
+ * na categoria correta preservando as permissões da categoria.
  *
  * @param {import("discord.js").Guild} guild
  * @param {Record<string, string[]>} [passedTierList]
+ * @returns {Promise<{ success: boolean, reason?: string, movedCount?: number, createdCount?: number, movedChannels?: string[], createdChannels?: string[] }>}
  */
 async function updateTierList(guild, passedTierList) {
     if (!guild) {
         console.error("[updateTierList] Guild não fornecida.");
-        return;
+        return { success: false, reason: "Guild não fornecida." };
     }
 
     const botMember = guild.members.me;
@@ -23,7 +67,10 @@ async function updateTierList(guild, passedTierList) {
         console.error(
             `[updateTierList] Não foi possível localizar o bot no servidor ${guild.name}.`
         );
-        return;
+        return {
+            success: false,
+            reason: `Não foi possível localizar o bot no servidor ${guild.name}.`
+        };
     }
 
     if (
@@ -34,7 +81,10 @@ async function updateTierList(guild, passedTierList) {
         console.error(
             `[updateTierList] O bot não possui a permissão global "Gerenciar Canais" em ${guild.name}.`
         );
-        return;
+        return {
+            success: false,
+            reason: `O bot não possui a permissão global "Gerenciar Canais" em ${guild.name}.`
+        };
     }
 
     let tierList = passedTierList;
@@ -47,7 +97,10 @@ async function updateTierList(guild, passedTierList) {
                 "[updateTierList] Erro ao buscar tier list:",
                 error
             );
-            return;
+            return {
+                success: false,
+                reason: "Erro ao buscar a tier list."
+            };
         }
     }
 
@@ -59,7 +112,10 @@ async function updateTierList(guild, passedTierList) {
         console.warn(
             "[updateTierList] Tier List vazia ou inválida. Abortando atualização."
         );
-        return;
+        return {
+            success: false,
+            reason: "Tier List vazia ou inválida."
+        };
     }
 
     const categoryNames = {
@@ -90,24 +146,6 @@ async function updateTierList(guild, passedTierList) {
     ];
 
     /**
-     * Normaliza nomes para comparar canais com os nomes da tier list.
-     *
-     * Exemplo:
-     * "Stardust / Synchron" -> "stardustsynchron"
-     *
-     * @param {string} name
-     * @returns {string}
-     */
-    function normalizeName(name) {
-        return String(name)
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, "")
-            .replace(/s$/, "");
-    }
-
-    /**
      * Verifica se o bot possui permissões efetivas em um canal ou categoria.
      *
      * @param {import("discord.js").GuildChannel} channel
@@ -120,6 +158,36 @@ async function updateTierList(guild, passedTierList) {
                 .permissionsFor(botMember)
                 ?.has(permission)
         );
+    }
+
+    const categoryChannelCounts = new Map();
+
+    function getCategoryCount(cat) {
+        if (!categoryChannelCounts.has(cat.id)) {
+            categoryChannelCounts.set(
+                cat.id,
+                cat.children?.cache?.size ?? 0
+            );
+        }
+        return categoryChannelCounts.get(cat.id);
+    }
+
+    function incrementCategoryCount(catId) {
+        if (categoryChannelCounts.has(catId)) {
+            categoryChannelCounts.set(
+                catId,
+                categoryChannelCounts.get(catId) + 1
+            );
+        }
+    }
+
+    function decrementCategoryCount(catId) {
+        if (categoryChannelCounts.has(catId)) {
+            categoryChannelCounts.set(
+                catId,
+                Math.max(0, categoryChannelCounts.get(catId) - 1)
+            );
+        }
     }
 
     /**
@@ -137,6 +205,13 @@ async function updateTierList(guild, passedTierList) {
         reason
     ) {
         if (channel.parentId === targetCategory.id) {
+            return false;
+        }
+
+        if (getCategoryCount(targetCategory) >= 50) {
+            console.warn(
+                `[updateTierList] Categoria "${targetCategory.name}" atingiu o limite de 50 canais em ${guild.name}. Não foi possível mover "${channel.name}".`
+            );
             return false;
         }
 
@@ -191,12 +266,19 @@ async function updateTierList(guild, passedTierList) {
         }
 
         try {
+            const oldParentId = channel.parentId;
+
             await channel.setParent(targetCategory.id, {
                 // Evita copiar/sincronizar os permission overwrites
                 // da categoria de destino.
                 lockPermissions: false,
                 reason
             });
+
+            if (oldParentId) {
+                decrementCategoryCount(oldParentId);
+            }
+            incrementCategoryCount(targetCategory.id);
 
             console.log(
                 `[updateTierList] 📁 ${channel.name} movido para ${targetCategory.name} em ${guild.name}`
@@ -211,6 +293,19 @@ async function updateTierList(guild, passedTierList) {
 
             return false;
         }
+    }
+
+    /*
+     * Atualiza o cache de canais do servidor antes de mapear categorias
+     * e canais, evitando dados desatualizados após reinício ou mutações.
+     */
+    try {
+        await guild.channels.fetch();
+    } catch (error) {
+        console.warn(
+            `[updateTierList] Não foi possível atualizar o cache inicial de canais de ${guild.name}:`,
+            error
+        );
     }
 
     /*
@@ -249,7 +344,7 @@ async function updateTierList(guild, passedTierList) {
         const category = categories[categoryName];
 
         category.children.cache.forEach(channel => {
-            if (channel.type === ChannelType.GuildText) {
+            if (channel.type === ChannelType.GuildText && channel.name) {
                 allDeckChannels.push(channel);
             }
         });
@@ -257,10 +352,11 @@ async function updateTierList(guild, passedTierList) {
 
     /*
      * Cria o mapa:
-     *
      * nome normalizado do deck -> número da tier
+     * e a lista de decks ordenada conforme a tier list.
      */
     const tierMap = {};
+    const tierDecks = [];
 
     for (const tierKey of Object.keys(tierList)) {
         const tierNumber = Number.parseInt(
@@ -280,7 +376,21 @@ async function updateTierList(guild, passedTierList) {
         }
 
         for (const deckName of tierList[tierKey]) {
-            tierMap[normalizeName(deckName)] = tierNumber;
+            if (
+                !deckName ||
+                typeof deckName !== "string" ||
+                !deckName.trim()
+            ) {
+                continue;
+            }
+
+            const normalized = normalizeName(deckName);
+            tierMap[normalized] = tierNumber;
+            tierDecks.push({
+                name: deckName.trim(),
+                normalizedName: normalized,
+                tier: tierNumber
+            });
         }
     }
 
@@ -299,7 +409,7 @@ async function updateTierList(guild, passedTierList) {
         }
 
         category.children.cache.forEach(channel => {
-            if (channel.type === ChannelType.GuildText) {
+            if (channel.type === ChannelType.GuildText && channel.name) {
                 prevTierDecks[normalizeName(channel.name)] =
                     tier;
             }
@@ -307,6 +417,10 @@ async function updateTierList(guild, passedTierList) {
     }
 
     let movedCount = 0;
+    let createdCount = 0;
+    const movedChannels = [];
+    const createdChannels = [];
+    const matchedDecks = new Set();
 
     /*
      * Move canais para suas tiers atuais.
@@ -322,6 +436,8 @@ async function updateTierList(guild, passedTierList) {
                 normalizedChannelName
             )
         ) {
+            matchedDecks.add(normalizedChannelName);
+
             const targetTier =
                 tierMap[normalizedChannelName];
 
@@ -348,6 +464,9 @@ async function updateTierList(guild, passedTierList) {
 
             if (moved) {
                 movedCount++;
+                movedChannels.push(
+                    `📁 ${channel.name} movido para ${targetCategory.name}`
+                );
             }
 
             continue;
@@ -383,13 +502,152 @@ async function updateTierList(guild, passedTierList) {
 
             if (moved) {
                 movedCount++;
+                movedChannels.push(
+                    `📁 ${channel.name} movido para ${tier90Category.name} (despromovido)`
+                );
             }
         }
     }
 
     /*
+     * Cria canais para decks que aparecerem na tier list e não existirem.
+     * Preserva as permissões da categoria.
+     */
+    for (const deck of tierDecks) {
+        if (matchedDecks.has(deck.normalizedName)) {
+            continue;
+        }
+
+        const targetCategoryName = categoryNames[deck.tier];
+        const targetCategory = categories[targetCategoryName];
+
+        if (!targetCategory) {
+            console.warn(
+                `[updateTierList] Não foi possível criar canal para "${deck.name}": ` +
+                `a categoria "${targetCategoryName}" não existe em ${guild.name}.`
+            );
+            continue;
+        }
+
+        // Verifica se o canal já existe em outra parte do servidor
+        const existingInGuild = guild.channels.cache.find(
+            ch =>
+                ch.type === ChannelType.GuildText &&
+                normalizeName(ch.name) === deck.normalizedName
+        );
+
+        if (existingInGuild) {
+            matchedDecks.add(deck.normalizedName);
+
+            const moved = await moveChannel(
+                existingInGuild,
+                targetCategory,
+                `Atualização automática da Tier List: Tier ${deck.tier}`
+            );
+
+            if (moved) {
+                movedCount++;
+                movedChannels.push(
+                    `📁 ${existingInGuild.name} movido para ${targetCategory.name}`
+                );
+            }
+
+            continue;
+        }
+
+        const canManageTarget = hasChannelPermission(
+            targetCategory,
+            PermissionFlagsBits.ManageChannels
+        );
+
+        const canViewTarget = hasChannelPermission(
+            targetCategory,
+            PermissionFlagsBits.ViewChannel
+        );
+
+        if (!canManageTarget || !canViewTarget) {
+            console.warn(
+                `[updateTierList] Sem permissão para criar canal na categoria "${targetCategory.name}" em ${guild.name}.`,
+                {
+                    servidor: guild.name,
+                    destino: targetCategory.name,
+                    canViewTarget,
+                    canManageTarget
+                }
+            );
+            continue;
+        }
+
+        if (getCategoryCount(targetCategory) >= 50) {
+            console.warn(
+                `[updateTierList] Categoria "${targetCategory.name}" atingiu o limite de 50 canais em ${guild.name}.`
+            );
+            continue;
+        }
+
+        const channelName = formatChannelName(deck.name);
+
+        try {
+            // Preserva as permissões da categoria
+            const categoryOverwrites =
+                targetCategory.permissionOverwrites?.cache;
+
+            const permissionOverwrites =
+                categoryOverwrites && categoryOverwrites.size > 0
+                    ? [...categoryOverwrites.values()].map(po =>
+                          typeof po.toJSON === "function"
+                              ? po.toJSON()
+                              : po
+                      )
+                    : undefined;
+
+            const createOptions = {
+                name: channelName,
+                type: ChannelType.GuildText,
+                parent: targetCategory.id,
+                reason: `Criação automática para deck da Tier ${deck.tier}: ${deck.name}`
+            };
+
+            if (permissionOverwrites && permissionOverwrites.length > 0) {
+                createOptions.permissionOverwrites = permissionOverwrites;
+            }
+
+            const newChannel =
+                await guild.channels.create(createOptions);
+
+            incrementCategoryCount(targetCategory.id);
+
+            try {
+                if (typeof newChannel?.lockPermissions === "function") {
+                    await newChannel.lockPermissions();
+                }
+            } catch (lockError) {
+                console.warn(
+                    `[updateTierList] Aviso ao sincronizar permissões do canal "${newChannel?.name ?? channelName}":`,
+                    lockError
+                );
+            }
+
+            matchedDecks.add(deck.normalizedName);
+            createdCount++;
+            createdChannels.push(
+                `✨ ${newChannel.name} criado em ${targetCategory.name}`
+            );
+
+            console.log(
+                `[updateTierList] ✨ ${newChannel.name} criado em ${targetCategory.name} em ${guild.name}`
+            );
+        } catch (error) {
+            console.error(
+                `[updateTierList] Erro ao criar canal para o deck "${deck.name}" em "${targetCategory.name}":`,
+                error
+            );
+        }
+    }
+
+    /*
      * Recarrega os canais do servidor para atualizar pais,
-     * posições e caches após as movimentações.
+     * posições e caches após as movimentações e criações.
      */
     try {
         await guild.channels.fetch();
@@ -448,11 +706,12 @@ async function updateTierList(guild, passedTierList) {
                 .filter(
                     channel =>
                         channel.type ===
-                        ChannelType.GuildText
+                            ChannelType.GuildText &&
+                        Boolean(channel.name)
                 )
                 .sort((a, b) =>
-                    a.name.localeCompare(
-                        b.name,
+                    String(a.name || "").localeCompare(
+                        String(b.name || ""),
                         "pt-BR",
                         {
                             sensitivity: "base"
@@ -511,10 +770,20 @@ async function updateTierList(guild, passedTierList) {
     }
 
     console.log(
-        `[updateTierList] Concluído para ${guild.name}. Canais movidos: ${movedCount}`
+        `[updateTierList] Concluído para ${guild.name}. Canais movidos: ${movedCount}, canais criados: ${createdCount}`
     );
+
+    return {
+        success: true,
+        movedCount,
+        createdCount,
+        movedChannels,
+        createdChannels
+    };
 }
 
 module.exports = {
-    updateTierList
+    updateTierList,
+    normalizeName,
+    formatChannelName
 };
