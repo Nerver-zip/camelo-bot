@@ -296,6 +296,19 @@ async function updateTierList(guild, passedTierList) {
     }
 
     /*
+     * Atualiza o cache de canais do servidor antes de mapear categorias
+     * e canais, evitando dados desatualizados após reinício ou mutações.
+     */
+    try {
+        await guild.channels.fetch();
+    } catch (error) {
+        console.warn(
+            `[updateTierList] Não foi possível atualizar o cache inicial de canais de ${guild.name}:`,
+            error
+        );
+    }
+
+    /*
      * Localiza as categorias existentes.
      */
     const categories = {};
