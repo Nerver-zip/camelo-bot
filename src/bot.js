@@ -9,14 +9,118 @@ const { TournamentFeeder } = require('./automessages/TournamentFeeder.js');
 const { stopServers } = require('./utils/auto-suggestions/suggestionServers.js');
 
 // ========== Discord Client ==========
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
-  ],
-});
+const commands = new Collection();
+const transientNetworkErrorCodes = new Set([
+  'EAI_AGAIN',
+  'ENOTFOUND',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EPIPE',
+  'UND_ERR_CONNECT_TIMEOUT',
+]);
+const initialLoginRetryDelayMs = 1000;
+const maxLoginRetryDelayMs = 30000;
+let shuttingDown = false;
+
+function createClient() {
+  const botClient = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildVoiceStates,
+    ],
+  });
+
+  botClient.commands = commands;
+
+  botClient.once('clientReady', async () => {
+    console.log(`Bot online como ${botClient.user.tag}`);
+    await NewsFeeder.init(botClient);
+    await TournamentFeeder.init(botClient);
+    await scheduleTierListUpdate(botClient);
+
+    botClient.user.setPresence({
+      status: 'online',
+      activities: [
+        { name: '🐪 Online nas horas vagas 🐫' }
+      ],
+    });
+  });
+
+  botClient.on('interactionCreate', async interaction => {
+    const command = botClient.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      if (interaction.isAutocomplete()) {
+        if (command.autocomplete) {
+          await command.autocomplete(interaction);
+        }
+        return;
+      }
+
+      if (interaction.isChatInputCommand()) {
+        await command.execute(interaction);
+      }
+    } catch (error) {
+      console.error(error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: '❌ Ocorreu um erro.', ephemeral: true });
+      } else {
+        await interaction.reply({ content: '❌ Ocorreu um erro.', ephemeral: true });
+      }
+    }
+  });
+
+  return botClient;
+}
+
+function getTransientNetworkErrorCode(error) {
+  const seen = new Set();
+  let current = error;
+
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    if (transientNetworkErrorCodes.has(current.code)) return current.code;
+    current = current.cause;
+  }
+
+  return null;
+}
+
+let client = createClient();
+
+async function loginWithRetry() {
+  let attempt = 0;
+
+  while (!shuttingDown) {
+    try {
+      await client.login(process.env.TOKEN);
+      return;
+    } catch (error) {
+      const code = getTransientNetworkErrorCode(error);
+      if (!code) throw error;
+
+      attempt += 1;
+      const delayMs = Math.min(
+        initialLoginRetryDelayMs * (2 ** Math.min(attempt - 1, 5)),
+        maxLoginRetryDelayMs,
+      );
+      console.error(`[WARNING] Falha de rede ao conectar ao Discord (${code}). Tentativa ${attempt + 1} em ${delayMs / 1000}s.`);
+
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      if (!shuttingDown) {
+        // discord.js destroys its WebSocket manager when login rejects, so a
+        // fresh Client is required before retrying the initial connection.
+        client = createClient();
+      }
+    }
+  }
+}
 
 (async () => {
 
@@ -35,7 +139,6 @@ const client = new Client({
     await scheduleChartUpdate();
     
     // Coleção de comandos
-    client.commands = new Collection();
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -49,53 +152,9 @@ const client = new Client({
       }
     }
 
-    await client.login(process.env.TOKEN);
+    await loginWithRetry();
 })();
 
-// ========== Discord Events ==========
-client.once('clientReady', async () => { 
-  console.log(`Bot online como ${client.user.tag}`);
-  await NewsFeeder.init(client);
-  await TournamentFeeder.init(client);
-  await scheduleTierListUpdate(client); 
-  
-  client.user.setPresence({
-    status: 'online',
-    activities: [
-      { name: '🐪 Online nas horas vagas 🐫' }
-    ],
-  });
-
-});
-
-//---------------Interaction Listener-------------------
-
-client.on('interactionCreate', async interaction => {
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-
-  try {
-    if (interaction.isAutocomplete()) {
-      if (command.autocomplete) {
-        await command.autocomplete(interaction);
-      }
-      return;
-    }
-
-    if (interaction.isChatInputCommand()) {
-      await command.execute(interaction);
-    }
-  } catch (error) {
-    console.error(error);
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: '❌ Ocorreu um erro.', ephemeral : true });
-    } else {
-      await interaction.reply({ content: '❌ Ocorreu um erro.', ephemeral : true });
-    }
-  }
-});
-
-let shuttingDown = false;
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
